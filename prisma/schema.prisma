@@ -1,0 +1,468 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Utilisateurs & Auth ───────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(OPERATOR)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  movements      Movement[]
+  resolvedAlerts Alert[]   @relation("ResolvedBy")
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ── Catégories ────────────────────────────────────────────────
+
+model Category {
+  id                 Int        @id @default(autoincrement())
+  name               String     @unique
+  description        String?
+  color              String     @default("#6366f1")
+  parentId           Int?
+  parent             Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children           Category[] @relation("CategoryTree")
+  seuilRotation      Float      @default(0)
+  autoClassification Boolean    @default(false)
+  active             Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  articles Article[]
+
+  @@map("categories")
+}
+
+// ── Fournisseurs ──────────────────────────────────────────────
+
+model Supplier {
+  id           Int            @id @default(autoincrement())
+  name         String
+  contact      String?
+  email        String?        @unique
+  phone        String?
+  address      String?
+  city         String?
+  postalCode   String?
+  country      String         @default("CI")
+  deliveryTime Int?
+  paymentTerms String?
+  discount     Float          @default(0)
+  rating       Float          @default(0)
+  notes        String?
+  status       SupplierStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  certifications SupplierCertification[]
+  articles       Article[]
+  receptions     Reception[]
+  orders         Order[]
+
+  @@map("suppliers")
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model SupplierCertification {
+  id         Int      @id @default(autoincrement())
+  supplierId Int
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name       String
+
+  @@map("supplier_certifications")
+}
+
+// ── Entrepôts & Emplacements ──────────────────────────────────
+
+model Warehouse {
+  id          Int             @id @default(autoincrement())
+  name        String
+  code        String          @unique
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String          @default("CI")
+  manager     String?
+  phone       String?
+  email       String?
+  area        Float?
+  maxCapacity Int             @default(0)
+  type        WarehouseType   @default(MAIN)
+  temperature TemperatureType @default(AMBIENT)
+  notes       String?
+  status      WarehouseStatus @default(ACTIVE)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  locations       Location[]
+  sourceMovements Movement[]  @relation("SourceWarehouse")
+  destMovements   Movement[]  @relation("DestWarehouse")
+  receptions      Reception[]
+  orders          Order[]
+
+  @@map("warehouses")
+}
+
+enum WarehouseType {
+  MAIN
+  REGIONAL
+  SPECIALIZED
+  TRANSIT
+}
+
+enum TemperatureType {
+  AMBIENT
+  REFRIGERATED
+  FROZEN
+  CONTROLLED
+}
+
+enum WarehouseStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+model Location {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  warehouseId Int
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  zone        String?
+  aisle       String?
+  span        String?
+  level       String?
+  maxCapacity Int       @default(1)
+  createdAt   DateTime  @default(now())
+
+  stocks      Stock[]
+  sourceLines MovementLine[] @relation("SourceLocation")
+  destLines   MovementLine[] @relation("DestLocation")
+
+  @@map("locations")
+}
+
+// ── Articles & Codes-barres ───────────────────────────────────
+
+model Article {
+  id             Int            @id @default(autoincrement())
+  reference      String         @unique
+  designation    String
+  description    String?
+  categoryId     Int?
+  category       Category?      @relation(fields: [categoryId], references: [id])
+  classification Classification @default(C)
+  uniteMesure    String
+  weight         Float?
+  volume         Float?
+  seuilMin       Int            @default(0)
+  seuilMax       Int            @default(0)
+  unitPrice      Float          @default(0)
+  supplierId     Int?
+  supplier       Supplier?      @relation(fields: [supplierId], references: [id])
+  status         ArticleStatus  @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  barcodes       ArticleBarcode[]
+  stocks         Stock[]
+  movementLines  MovementLine[]
+  receptionLines ReceptionLine[]
+  orderLines     OrderLine[]
+  alerts         Alert[]
+
+  @@map("articles")
+}
+
+enum Classification {
+  A
+  B
+  C
+}
+
+enum ArticleStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+model ArticleBarcode {
+  id        Int     @id @default(autoincrement())
+  articleId Int
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  code      String  @unique
+
+  @@map("article_barcodes")
+}
+
+// ── Stock ─────────────────────────────────────────────────────
+
+model Stock {
+  id         Int       @id @default(autoincrement())
+  articleId  Int
+  article    Article   @relation(fields: [articleId], references: [id])
+  locationId Int
+  location   Location  @relation(fields: [locationId], references: [id])
+  quantity   Int       @default(0)
+  lotNumber  String?
+  expiryDate DateTime?
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([articleId, locationId, lotNumber])
+  @@map("stocks")
+}
+
+// ── Mouvements ────────────────────────────────────────────────
+
+model Movement {
+  id                Int            @id @default(autoincrement())
+  reference         String         @unique
+  type              MovementType
+  sourceWarehouseId Int?
+  sourceWarehouse   Warehouse?     @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
+  destWarehouseId   Int?
+  destWarehouse     Warehouse?     @relation("DestWarehouse", fields: [destWarehouseId], references: [id])
+  userId            String?
+  user              User?          @relation(fields: [userId], references: [id])
+  status            MovementStatus @default(PLANNED)
+  reason            String?
+  notes             String?
+  executionDate     DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  lines MovementLine[]
+
+  @@map("movements")
+}
+
+enum MovementType {
+  ENTRY
+  EXIT
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum MovementStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model MovementLine {
+  id               Int       @id @default(autoincrement())
+  movementId       Int
+  movement         Movement  @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  articleId        Int
+  article          Article   @relation(fields: [articleId], references: [id])
+  sourceLocationId Int?
+  sourceLocation   Location? @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  destLocationId   Int?
+  destLocation     Location? @relation("DestLocation", fields: [destLocationId], references: [id])
+  quantity         Int
+  unitCost         Float     @default(0)
+  lotNumber        String?
+
+  @@map("movement_lines")
+}
+
+// ── Réceptions ────────────────────────────────────────────────
+
+model Reception {
+  id           Int             @id @default(autoincrement())
+  reference    String          @unique
+  supplierId   Int
+  supplier     Supplier        @relation(fields: [supplierId], references: [id])
+  warehouseId  Int
+  warehouse    Warehouse       @relation(fields: [warehouseId], references: [id])
+  orderId      Int?            @unique
+  order        Order?          @relation(fields: [orderId], references: [id])
+  status       ReceptionStatus @default(PENDING)
+  expectedDate DateTime
+  receivedDate DateTime?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  lines ReceptionLine[]
+
+  @@map("receptions")
+}
+
+enum ReceptionStatus {
+  PENDING
+  RECEIVED
+  PARTIAL
+  CANCELLED
+}
+
+model ReceptionLine {
+  id          Int       @id @default(autoincrement())
+  receptionId Int
+  reception   Reception @relation(fields: [receptionId], references: [id], onDelete: Cascade)
+  articleId   Int
+  article     Article   @relation(fields: [articleId], references: [id])
+  orderedQty  Int
+  receivedQty Int       @default(0)
+  unitPrice   Float
+
+  @@map("reception_lines")
+}
+
+// ── Commandes ─────────────────────────────────────────────────
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  reference    String      @unique
+  type         OrderType
+  supplierId   Int?
+  supplier     Supplier?   @relation(fields: [supplierId], references: [id])
+  client       String?
+  warehouseId  Int?
+  warehouse    Warehouse?  @relation(fields: [warehouseId], references: [id])
+  status       OrderStatus @default(DRAFT)
+  orderDate    DateTime    @default(now())
+  expectedDate DateTime?
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  lines     OrderLine[]
+  reception Reception?
+
+  @@map("orders")
+}
+
+enum OrderType {
+  PURCHASE
+  SALE
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  IN_PROGRESS
+  DELIVERED
+  CANCELLED
+}
+
+model OrderLine {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  articleId Int
+  article   Article @relation(fields: [articleId], references: [id])
+  quantity  Int
+  unitPrice Float
+
+  @@map("order_lines")
+}
+
+// ── Alertes ───────────────────────────────────────────────────
+
+model Alert {
+  id           Int         @id @default(autoincrement())
+  reference    String      @unique
+  type         AlertType
+  level        AlertLevel
+  articleId    Int?
+  article      Article?    @relation(fields: [articleId], references: [id])
+  warehouseId  Int?
+  message      String
+  status       AlertStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?       @relation("ResolvedBy", fields: [resolvedById], references: [id])
+
+  @@map("alerts")
+}
+
+enum AlertType {
+  LOW_STOCK
+  EXPIRY
+  CAPACITY
+  THRESHOLD
+}
+
+enum AlertLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
