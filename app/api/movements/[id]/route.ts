@@ -28,7 +28,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   try {
-    const { lines: _lines, ...body } = await req.json();
+    const raw = await req.json();
+    const { lines: _, ...body } = raw;
     const movement = await prisma.movement.update({ where: { id: Number(id) }, data: body });
     return NextResponse.json(movement);
   } catch {
