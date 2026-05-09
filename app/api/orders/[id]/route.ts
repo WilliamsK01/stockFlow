@@ -23,8 +23,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   try {
-    const raw = await req.json();
-    const { lines: _, ...body } = raw;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { lines, ...body } = await req.json();
     const order = await prisma.order.update({ where: { id: Number(id) }, data: body });
     return NextResponse.json(order);
   } catch {
