@@ -75,3 +75,85 @@ export interface Movement {
   unitCost: number,
   notes: string,
 }
+
+// Warehouse
+export interface Warehouse {
+  id: number,
+  name: string,
+  code: string,
+  address: string,
+  city: string,
+  postalCode: string,
+  country: string,
+  manager: string,
+  phone: string,
+  email: string,
+  area: number,
+  maxCapacity: number,
+  currentOccupation: number,
+  nbLocations: number,
+  occupiedLocations: number,
+  type: string,
+  temperature: string,
+  notes: string,
+  status: string,
+}
+
+// Reception
+export interface ReceptionLine {
+  articleRef: string;
+  designation: string;
+  orderedQty: number;
+  receivedQty: number;
+  unitPrice: number;
+}
+
+export interface Reception {
+  id: number;
+  reference: string;
+  supplier: string;
+  warehouse: string;
+  expectedDate: string;
+  receivedDate?: string;
+  status: string; // "Pending" | "Received" | "Partial" | "Cancelled"
+  lines: ReceptionLine[];
+  notes: string;
+  totalValue: number;
+}
+
+// Order
+export interface OrderLine {
+  articleRef: string;
+  designation: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface Order {
+  id: number;
+  reference: string;
+  type: string; // "Purchase" | "Sale"
+  supplier: string;
+  orderDate: string;
+  expectedDate: string;
+  status: string; // "Draft" | "Confirmed" | "In Progress" | "Delivered" | "Cancelled"
+  warehouse: string;
+  notes: string;
+  totalAmount: number;
+  lines: OrderLine[];
+}
+
+// Alert
+export interface Alert {
+  id: number;
+  reference: string;
+  type: string; // "Low Stock" | "Expiry" | "Capacity" | "Threshold"
+  level: string; // "Critical" | "High" | "Medium" | "Low"
+  article?: string;
+  warehouse?: string;
+  message: string;
+  status: string; // "Active" | "Acknowledged" | "Resolved"
+  createdAt: string;
+  resolvedAt?: string;
+}
+

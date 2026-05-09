@@ -1,3 +1,4 @@
+"use client"
 import {
   Card,
   CardContent,
@@ -19,6 +20,61 @@ import {
 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 
+
+// Données statiques pour la démo (à remplacer par des données réelles)
+  const kpiData = {
+    itemsInStock: 2847,
+    stockValue: 853900.06,
+    turnoverRate: 4.2,
+    activeAlerts: 23,
+    lowStockAlerts: 15,
+    expirationAlerts: 8,
+    activeSuppliers: 47,
+    newSuppliersThisMonth: 3,
+    warehouses: 8,
+    occupancyRate: 78,
+    ordersInProgress: 156,
+    lateOrders: 23,
+  }
+
+  const criticalAlerts = [
+    {
+      id: "REF-001",
+      name: "Screws M6x20",
+      stock: 5,
+      threshold: 50,
+      type: "breakup" as const,
+    },
+    {
+      id: "REF-045",
+      name: "5L engine oil",
+      expiration: "01/15/2025",
+      type: "lowStock" as const,
+    }
+  ]
+
+  const recentMovements = [
+    {
+      id: "CMD-2024-001",
+      type: "entrance" as const,
+      quantity: 150,
+      time: "2 hours ago",
+    },
+    {
+      id: "ORD-2024-089",
+      type: "exit" as const,
+      quantity: -75,
+      time: "4 hours ago",
+    },
+    {
+      id: "TRF-2024-015",
+      type: "transfer" as const,
+      expiration: "01/15/2025",
+    }
+  ]
+
+
+
 export default function DashboardPage() {
   return (
     <MainLayout>
@@ -33,7 +89,7 @@ export default function DashboardPage() {
           </div>
           <Button>
             <BarChart3 className="mr-2 h-4 w-4" />
-            generate report
+            Generate report
           </Button>
         </div>
 
@@ -44,10 +100,12 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium">
                 Items in stock
               </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <Package className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2,847</div>
+              <div className="text-2xl font-bold">
+                {kpiData.itemsInStock.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-success flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
@@ -60,10 +118,12 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Stock value</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">XOF 853,900.06</div>
+              <div className="text-2xl font-bold">
+                {kpiData.stockValue} XOF
+              </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-success flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
@@ -78,10 +138,10 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium">
                 Turnover rate
               </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4.2 x</div>
+              <div className="text-2xl font-bold">{kpiData.turnoverRate} x</div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-destructive flex items-center gap-1">
                   <TrendingDown className="h-3 w-3" />
@@ -94,14 +154,16 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Active alert
+                Active alerts
               </CardTitle>
               <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-warning">23</div>
+              <div className="text-2xl font-bold text-warning">
+                {kpiData.activeAlerts}
+              </div>
               <p className="text-xs text-muted-foreground">
-                15 low stocks, 8 expirations
+                {kpiData.lowStockAlerts} low stocks, {kpiData.expirationAlerts} expirations
               </p>
             </CardContent>
           </Card>
@@ -121,88 +183,70 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-warning/20">
-                <div className="flex-1">
-                  <p className="font-medium">REF-001 - Screws M6x20</p>
-                  <p className="text-xs text-muted-foreground">
-                    Stock: 5 units (Threshold: 50)
-                  </p>
+              {criticalAlerts.map((alert, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-lg bg-warning/20"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{alert.id} - {alert.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {alert.type === 'breakup' 
+                        ? `Stock: ${alert.stock} units (Threshold: ${alert.threshold})`
+                        : `Expiration: ${alert.expiration}`}
+                    </p>
+                  </div>
+                  <Badge variant={alert.type === 'breakup' ? "destructive" : "secondary"}>
+                    {alert.type === 'breakup' ? 'Breakup' : 'Low Stock'}
+                  </Badge>
                 </div>
-                <Badge variant="destructive">Breackup</Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/40">
-                <div className="flex-1">
-                  <p className="font-medium">REF-045 - 5L engine oil</p>
-                  <p className="text-xs text-muted-foreground">
-                    Expiration: 01/15/2025
-                  </p>
-                </div>
-                <Badge variant="secondary">Low Stock</Badge>
-              </div>
+              ))}
             </CardContent>
           </Card>
 
-          {/* Recents movements*/}
+          {/* Recent movements */}
           <Card>
             <CardHeader>
               <CardTitle>Recent movements</CardTitle>
               <CardDescription>Latest stock operations</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="h-2 w-2 rounded-full bg-success"></div>
-                <div className="flex-1">
-                  <p className="font-medium">Reception CMD-2024-001</p>
-                  <p className="text-xs text-muted-foreground">
-                    +150 units ⋅ 2 hours ago
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="bg-success text-success-foreground"
+              {recentMovements.map((movement, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
                 >
-                  Entrance
-                </Badge>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="h-2 w-2 rounded-full bg-info"></div>
-                <div className="flex-1">
-                  <p className="font-medium">Exit ORD-2024-089</p>
-                  <p className="text-xs text-muted-foreground">
-                    {" "}
-                    -75 units ⋅ 4 hour ago
-                  </p>
+                  <div className={`h-2 w-2 rounded-full ${
+                    movement.type === 'entrance' ? 'bg-success' :
+                    movement.type === 'exit' ? 'bg-info' : 'bg-warning'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {movement.type === 'entrance' ? 'Reception' : 'Exit'} {movement.id}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {movement.type !== 'transfer'
+                        ? `${movement.quantity > 0 ? '+' : ''}${movement.quantity} units ⋅ ${movement.time}`
+                        : `Expiration: ${movement.expiration}`}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`${
+                      movement.type === 'entrance' ? 'bg-success text-success-foreground' :
+                      movement.type === 'exit' ? 'bg-info text-info-foreground' :
+                      'bg-warning text-warning-foreground'
+                    }`}
+                  >
+                    {movement.type === 'entrance' ? 'Entrance' : movement.type === 'exit' ? 'Exit' : 'Transfer'}
+                  </Badge>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="bg-info text-info-foreground"
-                >
-                  Exit
-                </Badge>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="h-2 w-2 rounded-full bg-warning"></div>
-                <div className="flex-1">
-                  <p className="font-medium">Exit ORD-2024-089</p>
-                  <p className="text-xs text-muted-foreground">
-                    Expiration: 01/15/2025
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="bg-warning text-warning-foreground"
-                >
-                  Transfert
-                </Badge>
-              </div>
+              ))}
             </CardContent>
           </Card>
         </div>
 
-        {/* Stats supplementary */}
+        {/* Supplementary stats */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -212,8 +256,10 @@ export default function DashboardPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">47</div>
-              <p className="text-xs text-muted-foreground">3 news this month</p>
+              <div className="text-2xl font-bold">{kpiData.activeSuppliers}</div>
+              <p className="text-xs text-muted-foreground">
+                {kpiData.newSuppliersThisMonth} new this month
+              </p>
             </CardContent>
           </Card>
 
@@ -223,9 +269,9 @@ export default function DashboardPage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
+              <div className="text-2xl font-bold">{kpiData.warehouses}</div>
               <p className="text-xs text-muted-foreground">
-                Occupancy rate: 78%
+                Occupancy rate: {kpiData.occupancyRate}%
               </p>
             </CardContent>
           </Card>
@@ -238,12 +284,14 @@ export default function DashboardPage() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">156</div>
-              <p className="text-xs text-muted-foreground">23 late</p>
+              <div className="text-2xl font-bold">{kpiData.ordersInProgress}</div>
+              <p className="text-xs text-muted-foreground">
+                {kpiData.lateOrders} late
+              </p>
             </CardContent>
           </Card>
         </div>
       </div>
     </MainLayout>
-  );
+  )
 }

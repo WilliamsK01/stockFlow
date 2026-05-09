@@ -180,6 +180,10 @@ export const allCOUNTRIES = [
     value: "CR",
   },
   {
+    title: "Côte d'Ivoire",
+    value: "CI",
+  },
+  {
     title: "Croatia",
     value: "HR",
   },
@@ -374,10 +378,6 @@ export const allCOUNTRIES = [
   {
     title: "Italy",
     value: "IT",
-  },
-  {
-    title: "Ivory Coast",
-    value: "CI",
   },
   {
     title: "Jamaica",
