@@ -1,4 +1,5 @@
-"use client"
+"use client";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,65 +18,54 @@ import {
   Users,
   Building2,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 
-
-// Données statiques pour la démo (à remplacer par des données réelles)
-  const kpiData = {
-    itemsInStock: 2847,
-    stockValue: 853900.06,
-    turnoverRate: 4.2,
-    activeAlerts: 23,
-    lowStockAlerts: 15,
-    expirationAlerts: 8,
-    activeSuppliers: 47,
-    newSuppliersThisMonth: 3,
-    warehouses: 8,
-    occupancyRate: 78,
-    ordersInProgress: 156,
-    lateOrders: 23,
-  }
-
-  const criticalAlerts = [
-    {
-      id: "REF-001",
-      name: "Screws M6x20",
-      stock: 5,
-      threshold: 50,
-      type: "breakup" as const,
-    },
-    {
-      id: "REF-045",
-      name: "5L engine oil",
-      expiration: "01/15/2025",
-      type: "lowStock" as const,
-    }
-  ]
-
-  const recentMovements = [
-    {
-      id: "CMD-2024-001",
-      type: "entrance" as const,
-      quantity: 150,
-      time: "2 hours ago",
-    },
-    {
-      id: "ORD-2024-089",
-      type: "exit" as const,
-      quantity: -75,
-      time: "4 hours ago",
-    },
-    {
-      id: "TRF-2024-015",
-      type: "transfer" as const,
-      expiration: "01/15/2025",
-    }
-  ]
-
-
+interface DashboardData {
+  articlesCount: number;
+  totalStock: number;
+  activeAlerts: number;
+  suppliersCount: number;
+  warehousesCount: number;
+  recentMovements: Array<{
+    id: number;
+    reference: string;
+    type: string;
+    createdAt: string;
+    sourceWarehouse?: { name: string } | null;
+    destWarehouse?: { name: string } | null;
+  }>;
+  criticalAlerts: Array<{
+    id: number;
+    reference: string;
+    type: string;
+    level: string;
+    message: string;
+    article?: { reference: string; designation: string } | null;
+  }>;
+}
 
 export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/dashboard')
+      .then(r => r.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <MainLayout>
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </MainLayout>
+  );
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -104,7 +94,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {kpiData.itemsInStock.toLocaleString()}
+                {(data?.articlesCount ?? 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-success flex items-center gap-1">
@@ -122,7 +112,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {kpiData.stockValue} XOF
+                {(data?.totalStock ?? 0).toLocaleString()} XOF
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-success flex items-center gap-1">
@@ -136,12 +126,12 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Turnover rate
+                Warehouses
               </CardTitle>
               <BarChart3 className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpiData.turnoverRate} x</div>
+              <div className="text-2xl font-bold">{data?.warehousesCount ?? 0}</div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-destructive flex items-center gap-1">
                   <TrendingDown className="h-3 w-3" />
@@ -160,10 +150,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-warning">
-                {kpiData.activeAlerts}
+                {data?.activeAlerts ?? 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpiData.lowStockAlerts} low stocks, {kpiData.expirationAlerts} expirations
+                {data?.criticalAlerts?.length ?? 0} critical alerts
               </p>
             </CardContent>
           </Card>
@@ -183,17 +173,17 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {criticalAlerts.map((alert, index) => (
-                <div 
-                  key={index}
+              {(data?.criticalAlerts ?? []).map((alert) => (
+                <div
+                  key={alert.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-warning/20"
                 >
                   <div className="flex-1">
-                    <p className="font-medium">{alert.id} - {alert.name}</p>
+                    <p className="font-medium">
+                      {alert.reference} - {alert.article?.designation ?? alert.message}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {alert.type === 'breakup' 
-                        ? `Stock: ${alert.stock} units (Threshold: ${alert.threshold})`
-                        : `Expiration: ${alert.expiration}`}
+                      {alert.level}
                     </p>
                   </div>
                   <Badge variant={alert.type === 'breakup' ? "destructive" : "secondary"}>
@@ -211,9 +201,9 @@ export default function DashboardPage() {
               <CardDescription>Latest stock operations</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentMovements.map((movement, index) => (
-                <div 
-                  key={index}
+              {(data?.recentMovements ?? []).map((movement) => (
+                <div
+                  key={movement.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
                 >
                   <div className={`h-2 w-2 rounded-full ${
@@ -222,12 +212,10 @@ export default function DashboardPage() {
                   }`}></div>
                   <div className="flex-1">
                     <p className="font-medium">
-                      {movement.type === 'entrance' ? 'Reception' : 'Exit'} {movement.id}
+                      {movement.type === 'entrance' ? 'Reception' : movement.type === 'exit' ? 'Exit' : 'Transfer'} {movement.reference}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {movement.type !== 'transfer'
-                        ? `${movement.quantity > 0 ? '+' : ''}${movement.quantity} units ⋅ ${movement.time}`
-                        : `Expiration: ${movement.expiration}`}
+                      {new Date(movement.createdAt).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                   <Badge
@@ -256,9 +244,9 @@ export default function DashboardPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpiData.activeSuppliers}</div>
+              <div className="text-2xl font-bold">{data?.suppliersCount ?? 0}</div>
               <p className="text-xs text-muted-foreground">
-                {kpiData.newSuppliersThisMonth} new this month
+                Suppliers in the system
               </p>
             </CardContent>
           </Card>
@@ -269,9 +257,9 @@ export default function DashboardPage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpiData.warehouses}</div>
+              <div className="text-2xl font-bold">{data?.warehousesCount ?? 0}</div>
               <p className="text-xs text-muted-foreground">
-                Occupancy rate: {kpiData.occupancyRate}%
+                Active warehouses
               </p>
             </CardContent>
           </Card>
@@ -279,19 +267,19 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Orders in progress
+                Articles
               </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpiData.ordersInProgress}</div>
+              <div className="text-2xl font-bold">{data?.articlesCount ?? 0}</div>
               <p className="text-xs text-muted-foreground">
-                {kpiData.lateOrders} late
+                Registered articles
               </p>
             </CardContent>
           </Card>
         </div>
       </div>
     </MainLayout>
-  )
+  );
 }

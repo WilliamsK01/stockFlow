@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,75 +47,11 @@ import {
   MapPin,
   Thermometer,
   Users,
+  Loader2,
 } from "lucide-react";
 import { WarehouseDialog } from "@/components/warehouses/warehouse-dialog";
 import { Warehouse } from "@/types/type";
-
-const mockWarehouses: Warehouse[] = [
-  {
-    id: 1,
-    name: "Entrepôt Principal",
-    code: "EP-001",
-    address: "Avenue des Métiers Koumassi, Abidjan",
-    city: "",
-    postalCode: "",
-    country: "",
-    manager: "John Doe",
-    phone: "+225 05 960 84 000",
-    email: "",
-    area: 2500,
-    maxCapacity: 10000,
-    currentOccupation: 7500,
-    nbLocations: 150,
-    occupiedLocations: 112,
-    type: "Main",
-    temperature: "Ambiant",
-    notes: "",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Entrepôt Frigorifique",
-    code: "EP-002",
-    address: "Port de Commerce, 13000 Marseille",
-    city: "",
-    postalCode: "",
-    country: "",
-    manager: "Pierre Martin",
-    phone: "+33 4 91 84 00 67",
-    email: "",
-    area: 1200,
-    maxCapacity: 5000,
-    currentOccupation: 3200,
-    nbLocations: 80,
-    occupiedLocations: 51,
-    type: "Specialized",
-    temperature: "Refrigerated",
-    notes: "",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Dépôt Régional de Hong Kong",
-    code: "EP-003",
-    address: "123 Rue de la Liberté, Hong Kong",
-    city: "",
-    postalCode: "",
-    country: "",
-    manager: "Lee Kwok",
-    phone: "+86 1234567890",
-    email: "",
-    area: 800,
-    maxCapacity: 3000,
-    currentOccupation: 2100,
-    nbLocations: 60,
-    occupiedLocations: 42,
-    type: "Regional",
-    temperature: "Ambiant",
-    notes: "",
-    status: "Active",
-  },
-];
+import { toast } from "sonner";
 
 const mockEmplacements = [
   {
@@ -154,13 +90,22 @@ const mockEmplacements = [
 ];
 
 export default function WarehousesPage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(mockWarehouses);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("warehouses");
+
+  useEffect(() => {
+    fetch('/api/warehouses')
+      .then(r => r.json())
+      .then(data => setWarehouses(data))
+      .catch(() => toast.error('Error loading warehouses'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredWarehouses = warehouses.filter((warehouse) => {
     const matchesSearch =
@@ -172,8 +117,8 @@ export default function WarehousesPage() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const totalCapacity = warehouses.reduce((sum, w) => sum + w.maxCapacity, 0);
-  const totalOccupation = warehouses.reduce((sum, w) => sum + w.currentOccupation, 0);
+  const totalCapacity = warehouses.reduce((sum, w) => sum + (w.maxCapacity ?? 0), 0);
+  const totalOccupation = warehouses.reduce((sum, w) => sum + (w.currentOccupation ?? 0), 0);
   const avgOccupationRate = totalCapacity > 0 ? (totalOccupation / totalCapacity) * 100 : 0;
   const activeCount = warehouses.filter((w) => w.status === "Active").length;
 
@@ -226,6 +171,54 @@ export default function WarehousesPage() {
     setEditingWarehouse(undefined);
     setIsDialogOpen(true);
   };
+
+  const handleSave = async (data: Warehouse) => {
+    try {
+      if (editingWarehouse) {
+        const r = await fetch(`/api/warehouses/${editingWarehouse.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!r.ok) throw new Error();
+        const updated = await r.json();
+        setWarehouses(prev => prev.map(w => w.id === updated.id ? updated : w));
+        toast.success('Warehouse updated');
+      } else {
+        const r = await fetch('/api/warehouses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!r.ok) throw new Error();
+        const created = await r.json();
+        setWarehouses(prev => [...prev, created]);
+        toast.success('Warehouse created');
+      }
+      setIsDialogOpen(false);
+      setEditingWarehouse(undefined);
+    } catch {
+      toast.error('Error saving warehouse');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await fetch(`/api/warehouses/${id}`, { method: 'DELETE' });
+      setWarehouses(prev => prev.filter(w => w.id !== id));
+      toast.success('Deleted');
+    } catch {
+      toast.error('Error deleting');
+    }
+  };
+
+  if (loading) return (
+    <MainLayout>
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </MainLayout>
+  );
 
   return (
     <MainLayout>
@@ -381,13 +374,13 @@ export default function WarehousesPage() {
                         <TableCell>{warehouse.manager}</TableCell>
                         <TableCell>{getTypeBadge(warehouse.type)}</TableCell>
                         <TableCell>
-                          {warehouse.currentOccupation.toLocaleString()} /{" "}
-                          {warehouse.maxCapacity.toLocaleString()}
+                          {(warehouse.currentOccupation ?? 0).toLocaleString()} /{" "}
+                          {(warehouse.maxCapacity ?? 0).toLocaleString()}
                         </TableCell>
                         <TableCell>
                           {getOccupationBadge(
-                            warehouse.currentOccupation,
-                            warehouse.maxCapacity,
+                            warehouse.currentOccupation ?? 0,
+                            warehouse.maxCapacity ?? 0,
                           )}
                         </TableCell>
                         <TableCell>
@@ -418,7 +411,10 @@ export default function WarehousesPage() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 text-destructive">
+                              <DropdownMenuItem
+                                className="gap-2 text-destructive"
+                                onClick={() => handleDelete(warehouse.id)}
+                              >
                                 <Trash2 className="h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
@@ -528,23 +524,7 @@ export default function WarehousesPage() {
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           warehouse={editingWarehouse}
-          onSave={(warehouseData) => {
-            if (editingWarehouse) {
-              setWarehouses(
-                warehouses.map((w) =>
-                  w.id === editingWarehouse.id ? { ...w, ...warehouseData } : w,
-                ),
-              );
-            } else {
-              const newWarehouse: Warehouse = {
-                ...warehouseData,
-                id: Math.max(...warehouses.map((w) => w.id)) + 1,
-              };
-              setWarehouses([...warehouses, newWarehouse]);
-            }
-            setIsDialogOpen(false);
-            setEditingWarehouse(undefined);
-          }}
+          onSave={handleSave}
         />
       </div>
     </MainLayout>

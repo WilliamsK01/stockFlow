@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Package, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,23 +41,32 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="w-full max-w-md space-y-6">
+
         {/* Brand */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
-            <Package className="h-8 w-8 text-primary-foreground" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative h-20 w-20 overflow-hidden rounded-2xl shadow-xl ring-2 ring-primary/20">
+            <Image
+              src="/logo.jpeg"
+              alt="StockAirys Logo"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">StockAirys</h1>
-          <p className="text-sm text-muted-foreground">
-            Multi-sector inventory management
-          </p>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight">StockAirys</h1>
+            <p className="text-sm text-muted-foreground">
+              Système de gestion de stock multi-secteur
+            </p>
+          </div>
         </div>
 
         {/* Login card */}
         <Card className="shadow-xl border-0 bg-card/80 backdrop-blur">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Sign in</CardTitle>
+            <CardTitle className="text-xl">Connexion</CardTitle>
             <CardDescription>
-              Enter your credentials to access the platform
+              Entrez vos identifiants pour accéder à la plateforme
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -66,7 +76,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@company.com"
+                  placeholder="vous@entreprise.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -76,7 +86,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Mot de passe</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -113,10 +123,10 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in…
+                    Connexion en cours…
                   </>
                 ) : (
-                  "Sign in"
+                  "Se connecter"
                 )}
               </Button>
             </form>

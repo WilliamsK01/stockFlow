@@ -1,258 +1,270 @@
 # StockAirys — Système de gestion de stock multi-secteur
 
-Application web de gestion d'inventaire construite avec **Next.js 15**, **React 19** et **TypeScript**. Elle couvre la gestion des articles, catégories, fournisseurs, entrepôts et mouvements de stock, avec un tableau de bord analytique.
+Application web de gestion d'inventaire construite avec **Next.js 16**, **React 19** et **TypeScript**. Déployée sur **Vercel**, connectée à **Supabase (PostgreSQL)**, authentifiée avec **NextAuth.js v5**.
+
+🌐 **Production** : [https://stockflow-airys.vercel.app](https://stockflow-airys.vercel.app)
 
 ---
 
 ## Table des matières
 
-1. [Aperçu technique](#aperçu-technique)
+1. [État du projet](#état-du-projet)
 2. [Stack technologique](#stack-technologique)
-3. [Structure du projet](#structure-du-projet)
-4. [État d'avancement](#état-davancement)
-5. [Ce qui manque](#ce-qui-manque)
-6. [Améliorations prioritaires](#améliorations-prioritaires)
-7. [Installation et démarrage](#installation-et-démarrage)
-8. [Modèle de base de données](#modèle-de-base-de-données)
-9. [Feuille de route recommandée](#feuille-de-route-recommandée)
+3. [Architecture](#architecture)
+4. [Modules et pages](#modules-et-pages)
+5. [API REST](#api-rest)
+6. [Base de données](#base-de-données)
+7. [Authentification](#authentification)
+8. [Sécurité](#sécurité)
+9. [Installation et démarrage](#installation-et-démarrage)
+10. [Déploiement Vercel](#déploiement-vercel)
+11. [Améliorations futures](#améliorations-futures)
 
 ---
 
-## Aperçu technique
+## État du projet
 
 | Critère | État |
 |---|---|
-| Interface utilisateur | 100 % complète (12/12 modules) |
-| Backend / API | Non implémenté |
-| Base de données | Non connectée |
-| Authentification | Non implémentée |
-| Données persistantes | Non — tout est en mock statique |
-| Prêt pour la production | Non (frontend complet, backend à faire) |
+| Interface utilisateur | 100 % — 12 modules, 14 pages |
+| Backend / API REST | 100 % — 19 routes, 10 entités |
+| Base de données | Connectée — Supabase PostgreSQL |
+| Authentification | Fonctionnelle — NextAuth.js v5 + JWT |
+| Sécurité base de données | RLS activé sur 19 tables |
+| Déploiement | En production sur Vercel |
+| Données mock | Remplacées par API réelle |
 
 ---
 
 ## Stack technologique
 
+### Frontend
+
 | Catégorie | Outil |
-|---|---|
-| Framework | Next.js 15.4 (App Router, Turbopack) |
+| --- | --- |
+| Framework | Next.js 16.2 (App Router) |
 | UI | React 19, Tailwind CSS 4, ShadcnUI, Radix UI |
 | Animations | Framer Motion 12 |
 | Formulaires | React Hook Form 7 + Zod 4 |
 | Icônes | Lucide React, Iconsax |
-| Date | date-fns, react-datepicker, react-day-picker |
-| Téléphone | react-phone-number-input |
+| Dates | date-fns, react-datepicker |
 | Notifications | Sonner (toasts) |
 | Thème | next-themes (dark/light) |
+
+### Backend
+
+| Catégorie | Outil |
+| --- | --- |
+| ORM | Prisma 5.22 |
+| Base de données | PostgreSQL via Supabase |
+| Authentification | NextAuth.js v5 (beta) + bcryptjs |
+| Sessions | JWT (stateless) |
+| Adapter auth | @auth/prisma-adapter |
 | Typage | TypeScript 5 |
-| Linting | ESLint + Prettier |
+
+### Infrastructure
+
+| Catégorie | Outil |
+| --- | --- |
+| Hébergement | Vercel (déploiement automatique) |
+| Base de données cloud | Supabase (session pooler, port 5432) |
+| CI/CD | GitHub → Vercel (push → redéploiement) |
 
 ---
 
-## Structure du projet
+## Architecture
 
 ```text
 stockflow/
-├── app/                        # Pages Next.js (App Router)
-│   ├── page.tsx                # Redirige vers /dashboard
-│   ├── layout.tsx              # Layout racine
-│   ├── globals.css
-│   ├── dashboard/page.tsx      # Tableau de bord principal
-│   ├── articles/page.tsx       # Gestion des articles
-│   ├── categories/page.tsx     # Gestion des catégories
-│   ├── suppliers/page.tsx      # Gestion des fournisseurs
-│   ├── movements/page.tsx      # Journal des mouvements
-│   └── warehouses/page.tsx     # Gestion des entrepôts (INCOMPLET)
+├── app/                          # Pages Next.js (App Router)
+│   ├── login/page.tsx            # Page de connexion
+│   ├── dashboard/page.tsx        # Tableau de bord
+│   ├── articles/page.tsx         # Articles
+│   ├── categories/page.tsx       # Catégories
+│   ├── suppliers/page.tsx        # Fournisseurs
+│   ├── movements/page.tsx        # Mouvements de stock
+│   ├── warehouses/page.tsx       # Entrepôts
+│   ├── receptions/page.tsx       # Réceptions
+│   ├── orders/page.tsx           # Commandes
+│   ├── alerts/page.tsx           # Alertes
+│   ├── forecasting/page.tsx      # Prévisions
+│   ├── reports/page.tsx          # Rapports
+│   ├── settings/page.tsx         # Paramètres
+│   └── api/                      # Routes API REST
+│       ├── auth/[...nextauth]/   # Handlers NextAuth
+│       ├── articles/             # CRUD articles
+│       ├── categories/           # CRUD catégories
+│       ├── suppliers/            # CRUD fournisseurs
+│       ├── warehouses/           # CRUD entrepôts
+│       ├── movements/            # CRUD mouvements
+│       ├── receptions/           # CRUD réceptions
+│       ├── orders/               # CRUD commandes
+│       ├── alerts/               # CRUD alertes
+│       ├── users/                # Liste utilisateurs
+│       └── dashboard/            # Agrégats dashboard
 │
 ├── components/
 │   ├── layout/
-│   │   ├── main-layout.tsx     # Wrapper principal (sidebar + header)
-│   │   ├── sidebar.tsx         # Navigation (12 entrées, 6 actives)
-│   │   └── header.tsx          # Barre supérieure (recherche, notifs, thème)
-│   ├── articles/
-│   │   └── article-dialog.tsx  # Formulaire création/édition article
-│   ├── categories/
-│   │   └── category-dialog.tsx # Formulaire catégorie + color picker
-│   ├── suppliers/
-│   │   ├── supplier-dialog.tsx # Formulaire fournisseur
-│   │   └── country-selector.tsx
-│   ├── movements/
-│   │   ├── movement-dialog.tsx # Formulaire mouvement de stock
-│   │   └── date-picker-input.tsx
-│   ├── warehouses/
-│   │   └── warehouse-dialog.tsx # Formulaire entrepôt
-│   ├── utils/                  # Composants utilitaires réutilisables
-│   └── ui/                     # 19 composants ShadcnUI
+│   │   ├── main-layout.tsx       # Wrapper (sidebar + header + footer)
+│   │   ├── sidebar.tsx           # Navigation rétractable avec footer utilisateur
+│   │   ├── header.tsx            # Barre supérieure
+│   │   └── footer.tsx            # Pied de page (horloge, statut système)
+│   ├── articles/article-dialog.tsx
+│   ├── categories/category-dialog.tsx
+│   ├── suppliers/supplier-dialog.tsx
+│   ├── movements/movement-dialog.tsx
+│   ├── warehouses/warehouse-dialog.tsx
+│   ├── receptions/reception-dialog.tsx
+│   ├── orders/order-dialog.tsx
+│   └── ui/                       # 20+ composants ShadcnUI
 │
 ├── lib/
-│   ├── utils.ts                # Utilitaire cn()
-│   ├── allCountries.ts         # Liste complète des pays
-│   ├── currencySymbols.ts      # Symboles monétaires
-│   └── getFlagEmoji.ts         # Génération d'emojis de drapeaux
+│   ├── prisma.ts                 # Client Prisma singleton (datasourceUrl explicite)
+│   └── utils.ts                  # Utilitaires
 │
-├── types/
-│   ├── type.tsx                # Interfaces TypeScript principales
-│   └── countries.json          # Données de référence pays
+├── prisma/
+│   ├── schema.prisma             # Schéma complet (15 modèles, 12 enums)
+│   ├── seed.ts                   # Données initiales
+│   └── rls.sql                   # Script RLS pour Supabase
 │
-└── public/                     # Assets statiques
+├── auth.ts                       # Config NextAuth complète (Node.js uniquement)
+├── auth.config.ts                # Config NextAuth Edge-compatible (middleware)
+└── middleware.ts                 # Protection des routes (JWT check)
 ```
 
 ---
 
-## État d'avancement
+## Modules et pages
 
-### Vue d'ensemble des modules
+### Navigation (sidebar rétractable)
 
-| Module | Route | UI | CRUD | Données réelles |
-|---|---|---|---|---|
-| Tableau de bord | `/dashboard` | Complet | — | Non (mock) |
-| Articles | `/articles` | Complet | Complet | Non (mock) |
-| Catégories | `/categories` | Complet | Complet | Non (mock) |
-| Fournisseurs | `/suppliers` | Complet | Complet | Non (mock) |
-| Mouvements | `/movements` | Complet | Complet | Non (mock) |
-| Entrepôts | `/warehouses` | Complet | Complet | Non (mock) |
-| Réceptions | `/receptions` | Complet | Complet | Non (mock) |
-| Commandes | `/orders` | Complet | Complet | Non (mock) |
-| Prévisions | `/forecasting` | Complet | — (lecture seule) | Non (mock) |
-| Rapports | `/reports` | Complet | — (lecture seule) | Non (mock) |
-| Alertes | `/alerts` | Complet | Partiel (acknowledge/resolve/delete) | Non (mock) |
-| Paramètres | `/settings` | Complet | Local (toast) | Non |
+La sidebar dispose d'un **bouton toggle** pour se réduire (icônes seules) ou s'agrandir (icônes + labels), avec une animation fluide. Elle comprend un **footer utilisateur** (avatar, nom, rôle, déconnexion au hover).
 
----
+| Module | Route | Fonctionnalité |
+|---|---|---|
+| Tableau de bord | `/dashboard` | KPI, alertes critiques, mouvements récents |
+| Articles | `/articles` | CRUD complet, classification ABC, seuils |
+| Catégories | `/categories` | Arborescence parent/enfant, color picker |
+| Fournisseurs | `/suppliers` | CRUD, sélecteur pays, téléphone international |
+| Mouvements | `/movements` | Entrées/Sorties/Transferts/Ajustements |
+| Entrepôts | `/warehouses` | Onglets Warehouses + Locations |
+| Réceptions | `/receptions` | Lignes dynamiques, calcul totalValue |
+| Commandes | `/orders` | Achats/Ventes, lignes dynamiques, total |
+| Alertes | `/alerts` | Acknowledge / Resolve / Delete par action |
+| Prévisions | `/forecasting` | Jours restants colorés, plan réapprovisionnement |
+| Rapports | `/reports` | 4 onglets : Stock, Mouvements, Fournisseurs, Entrepôts |
+| Paramètres | `/settings` | 4 onglets : Entreprise, Préférences, Notifications, Utilisateurs |
+| Connexion | `/login` | Email + mot de passe, feedback d'erreur |
 
-### Détail par module implémenté
+### Layout global
 
-#### Tableau de bord (`/dashboard`)
-- KPI cards : articles en stock, valeur totale, taux de rotation, alertes actives
-- Section alertes critiques (articles sous seuil minimum)
-- Journal des mouvements récents
-- Statistiques secondaires : fournisseurs, entrepôts, commandes en cours
-- Données entièrement statiques (hardcodées)
-
-#### Articles (`/articles`)
-- Tableau avec colonnes : référence, désignation, catégorie, classification ABC, stock, unité, prix, statut
-- Dialog de création/édition avec 50+ champs (infos générales, stock, prix, localisation, codes-barres)
-- Recherche par référence ou désignation
-- Filtres : catégorie, classification (A, B, C)
-- Actions : Voir, Modifier, Supprimer
-- KPI cards en en-tête
-
-#### Catégories (`/categories`)
-- Arborescence parent/enfant
-- Color picker intégré
-- Configuration de la rotation et de la classification ABC automatique
-- Filtre par statut actif/inactif
-
-#### Fournisseurs (`/suppliers`)
-- Informations complètes : contact, adresse, pays, délai livraison, conditions de paiement, remise
-- Sélecteur de pays avec drapeau emoji
-- Champ téléphone international (react-phone-number-input)
-- Gestion des certifications (tableau dynamique)
-- Note (étoiles) de qualité fournisseur
-- Filtres : pays, statut (Actif, Inactif, Suspendu)
-
-#### Mouvements (`/movements`)
-- Types : Entrée, Sortie, Transfert, Ajustement
-- Statuts : Terminé, En cours, Planifié, Annulé
-- Champs : référence, article, lot, entrepôt source/destination, emplacement, coût unitaire, dates
-- Filtres : type, statut, période
-- Icônes et badges couleur par type
-
-#### Entrepôts (`/warehouses`)
-
-- KPI : total, actifs, capacité totale, taux d'occupation moyen
-- Onglets : Warehouses (table) et Locations (emplacements)
-- Table : nom/code, manager, type (badge), capacité, occupation %, température, statut, actions
-- Dialog CRUD complet avec sélecteur de pays et gestion des caractéristiques physiques
+- **Header** : barre de recherche, notifications, toggle thème dark/light, menu utilisateur
+- **Footer** : nom de l'app, version, statut système (indicateur animé), horloge en temps réel
+- **Sidebar** : toggle collapse/expand, badge actif sur la route courante, logout discret au hover
 
 ---
 
-### Composants transversaux
+## API REST
 
-| Composant | État |
+Toutes les routes sont **protégées par session JWT** via `auth()` de NextAuth. Chaque entité expose les méthodes standard :
+
+| Endpoint | GET | POST | GET/:id | PUT/:id | DELETE/:id |
+| --- | --- | --- | --- | --- | --- |
+| `/api/articles` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/categories` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/suppliers` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/warehouses` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/movements` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/receptions` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/orders` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/alerts` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/api/users` | ✓ | — | — | — | — |
+| `/api/dashboard` | ✓ | — | — | — | — |
+
+**Réponses** : JSON, codes HTTP standard (200, 201, 204, 401, 404, 500).
+
+---
+
+## Base de données
+
+### Technologie
+
+- **PostgreSQL** hébergé sur **Supabase** (région EU West — eu-west-1)
+- **Prisma 5** comme ORM (migrations, typage auto-généré, relations)
+- Connexion via **session pooler** (port 5432, compatible IPv4)
+
+### Modèles (15 tables)
+
+| Modèle | Table | Description |
+|---|---|---|
+| `User` | `users` | Utilisateurs et rôles |
+| `Account` | `accounts` | OAuth accounts (NextAuth) |
+| `Session` | `sessions` | Sessions JWT (NextAuth) |
+| `VerificationToken` | `verification_tokens` | Tokens de vérification |
+| `Category` | `categories` | Catégories (arbre parent/enfant) |
+| `Supplier` | `suppliers` | Fournisseurs |
+| `SupplierCertification` | `supplier_certifications` | Certifications fournisseurs |
+| `Warehouse` | `warehouses` | Entrepôts |
+| `Location` | `locations` | Emplacements dans les entrepôts |
+| `Article` | `articles` | Articles du catalogue |
+| `ArticleBarcode` | `article_barcodes` | Codes-barres |
+| `Stock` | `stocks` | Quantité par article × emplacement × lot |
+| `Movement` + `MovementLine` | `movements` + `movement_lines` | Mouvements de stock |
+| `Reception` + `ReceptionLine` | `receptions` + `reception_lines` | Réceptions fournisseurs |
+| `Order` + `OrderLine` | `orders` + `order_lines` | Commandes achat/vente |
+| `Alert` | `alerts` | Alertes système |
+
+### Enums (12)
+
+`Role`, `SupplierStatus`, `WarehouseType`, `TemperatureType`, `WarehouseStatus`, `Classification`, `ArticleStatus`, `MovementType`, `MovementStatus`, `ReceptionStatus`, `OrderType`, `OrderStatus`, `AlertType`, `AlertLevel`, `AlertStatus`
+
+### Champs calculés (non stockés)
+
+Ces valeurs sont calculées à la requête via Prisma aggregations :
+
+| Champ UI | Calcul SQL |
 |---|---|
-| Sidebar navigation | Complet (12 entrées dont 6 sans route active) |
-| Header (recherche, notifs, thème, profil) | Complet visuellement — recherche non fonctionnelle |
-| Theme dark/light | Fonctionnel |
-| Toast notifications (Sonner) | Fonctionnel |
-| CountrySelector (drapeau + nom) | Fonctionnel |
-| PhoneInputComponent | Fonctionnel |
-| DatePickerInput | Fonctionnel |
-| 19 composants ShadcnUI | Prêts à l'emploi |
+| Occupation entrepôt | `SUM(stocks.quantity)` par warehouseId |
+| Valeur stock catégorie | `SUM(unitPrice × quantity)` |
+| Total commande | `SUM(orderLines.quantity × unitPrice)` |
+| Valeur réception | `SUM(receivedQty × unitPrice)` |
 
 ---
 
-## Ce qui manque
+## Authentification
 
-### Bloquant pour la production
+- **Provider** : `CredentialsProvider` (email + mot de passe)
+- **Hash** : bcryptjs (côté Node.js uniquement, pas dans l'Edge Runtime)
+- **Sessions** : JWT stateless (stratégie `jwt`)
+- **Middleware** : protège toutes les routes sauf `/login`, `/api/auth/*` et les assets statiques
+- **Architecture Edge-safe** : `auth.config.ts` (sans Prisma ni bcryptjs) utilisé par le middleware, `auth.ts` (complet) utilisé par les API routes
 
-1. **Backend et API** — Aucune route `/api/` n'existe. Toutes les données sont des constantes JavaScript en mémoire, perdues à chaque rechargement de page.
+### Rôles disponibles
 
-2. **Base de données** — Aucun schéma ni ORM configuré (Prisma, Drizzle, ou autre). Aucune table de persistance.
-
-3. **Authentification** — Aucun système de connexion, de session ou de protection de route (NextAuth.js, Clerk, ou équivalent).
-
-4. **Page Entrepôts** — Le tableau d'affichage des entrepôts et des emplacements n'est pas implémenté, malgré le dialog fonctionnel et les données mock présentes.
-
-5. **Variables d'environnement** — Aucun fichier `.env.local` ou `.env.example` n'est configuré.
-
-### Modules absents
-
-6. **Réceptions** — Enregistrement des entrées de marchandises liées aux commandes fournisseurs.
-7. **Commandes** — Gestion des bons de commande (achats et ventes).
-8. **Prévisions** — Module d'analyse et de prévision de la demande.
-9. **Rapports** — Exports, graphiques avancés, rapports périodiques.
-10. **Alertes** — Page dédiée à la gestion des règles d'alerte (seuils min/max, péremption).
-11. **Paramètres** — Configuration de l'application (devise, unités, entreprise, utilisateurs).
-
-### Problèmes de qualité du code
-
-12. Types `any` utilisés dans plusieurs composants dialogs et pages au lieu de types stricts.
-13. La suppression d'articles/catégories/fournisseurs/mouvements ne fait qu'une mise à jour d'état local sans confirmation visuelle ni appel API.
-14. La recherche dans le header est un champ visuel non câblé à aucune logique.
-15. Certaines options dans les `<Select>` sont des valeurs hardcodées qui devraient être dynamiques (catégories, fournisseurs dans les formulaires).
+| Rôle | Description |
+|---|---|
+| `ADMIN` | Accès complet |
+| `MANAGER` | Gestion opérationnelle |
+| `OPERATOR` | Saisie et consultation |
+| `VIEWER` | Lecture seule |
 
 ---
 
-## Améliorations prioritaires
+## Sécurité
 
-### Qualité du code
+### Row Level Security (RLS)
 
-- [ ] Remplacer les types `any` par des types stricts (notamment dans les dialogs)
-- [ ] Extraire les données mock dans des fichiers dédiés (`/lib/mock/`)
-- [ ] Ajouter la gestion des erreurs sur les actions CRUD (try/catch, états d'erreur)
-- [ ] Ajouter des états de chargement (`loading`) pour les futurs appels API
-- [ ] Mettre en place la pagination sur tous les tableaux
-- [ ] Ajouter une boîte de confirmation avant chaque suppression
+Le RLS est activé sur les **19 tables publiques** via le script `prisma/rls.sql`. Cela bloque tout accès direct via l'API PostgREST/anon key de Supabase. Notre app n'est pas affectée (Prisma se connecte avec le rôle `postgres` qui bypass le RLS par conception PostgreSQL).
 
-### Fonctionnalités manquantes à fort impact
+Tables protégées : `users`, `accounts`, `sessions`, `verification_tokens`, `categories`, `suppliers`, `supplier_certifications`, `warehouses`, `locations`, `articles`, `article_barcodes`, `stocks`, `movements`, `movement_lines`, `receptions`, `reception_lines`, `orders`, `order_lines`, `alerts`.
 
-- [ ] **Export CSV/Excel** pour articles, mouvements, fournisseurs
-- [ ] **Import en masse** (CSV upload pour alimenter le stock initial)
-- [ ] **Recherche globale** fonctionnelle dans le header
-- [ ] **Impression / PDF** des bons de mouvement et fiches articles
-- [ ] **Gestion des images** pour les articles (upload)
-- [ ] **Notifications en temps réel** (stock sous seuil, alertes)
-- [ ] **Rôles et permissions** (admin, gestionnaire, opérateur, lecture seule)
-- [ ] **Journal d'audit** persistant (qui a fait quoi et quand)
+### Middleware de protection
 
-### UX / Design
+Toutes les routes (sauf `/login` et `/api/auth/*`) sont protégées par le middleware NextAuth. Un utilisateur non authentifié est automatiquement redirigé vers `/login`.
 
-- [ ] Graphiques sur le dashboard (courbes de mouvements, camembert par catégorie)
-- [ ] Vue carte ou plan pour les entrepôts et emplacements
-- [ ] Mode mobile optimisé (sidebar en drawer sur petit écran)
-- [ ] Internationalisation (i18n) — l'interface est en français mais sans système i18n formel
-- [ ] Accessibilité complète (aria-labels, navigation clavier)
-- [ ] Squelettes de chargement (`skeleton`) sur les tableaux
+### Dépendances
 
-### Infrastructure
-
-- [ ] Configurer une base de données (recommandé : PostgreSQL + Prisma)
-- [ ] Créer les routes API Next.js (`app/api/...`)
-- [ ] Ajouter NextAuth.js ou Clerk pour l'authentification
-- [ ] Configurer les variables d'environnement (`.env.example`)
-- [ ] Mettre en place les tests (Jest + React Testing Library)
-- [ ] CI/CD (GitHub Actions ou similaire)
+CVEs Next.js corrigées — version 16.2.6+ utilisée en production.
 
 ---
 
@@ -262,520 +274,125 @@ stockflow/
 
 - Node.js >= 18
 - npm >= 9
+- Compte Supabase (gratuit)
 
-### Démarrage en développement
+### 1. Cloner et installer
 
 ```bash
-# Cloner le projet
-git clone <url-du-repo>
+git clone https://github.com/WilliamsK01/stockFlow.git
 cd stockflow
-
-# Installer les dépendances
 npm install
+```
 
-# Lancer le serveur de développement (Turbopack)
+### 2. Configurer les variables d'environnement
+
+```bash
+cp .env.example .env.local
+```
+
+Remplissez `.env.local` :
+
+```env
+# Supabase — Session pooler (port 5432)
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres?sslmode=require&connection_limit=5&pool_timeout=20"
+DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres?sslmode=require"
+
+# NextAuth.js
+AUTH_SECRET="<générer avec: openssl rand -base64 32>"
+NEXTAUTH_URL="http://localhost:3000"
+
+# App
+NEXT_PUBLIC_APP_NAME="StockAirys"
+NEXT_PUBLIC_APP_VERSION="1.0.0"
+```
+
+### 3. Initialiser la base de données
+
+```bash
+# Générer le client Prisma
+npm run db:generate
+
+# Créer toutes les tables dans Supabase
+npm run db:push
+
+# Insérer les données initiales (admin + catégories + fournisseurs + entrepôts + articles)
+npm run db:seed
+```
+
+### 4. Lancer en développement
+
+```bash
 npm run dev
 ```
 
-L'application sera disponible sur [http://localhost:3000](http://localhost:3000) et redirigera automatiquement vers `/dashboard`.
+Ouvrez [http://localhost:3000](http://localhost:3000) — vous serez redirigé vers `/login`.
+
+**Compte admin par défaut :**
+
+- Email : `williamsk.koffi1@gmail.com`
+- Mot de passe : `Admin@2025`
 
 ### Scripts disponibles
 
 ```bash
-npm run dev      # Serveur de développement avec Turbopack
-npm run build    # Build de production
-npm start        # Démarrer le serveur de production
-npm run lint     # Vérification ESLint
+npm run dev          # Serveur dev (Turbopack)
+npm run build        # Build production (prisma generate + next build)
+npm start            # Serveur production
+npm run lint         # ESLint
+npm run db:generate  # Générer le client Prisma
+npm run db:push      # Synchroniser le schéma avec Supabase
+npm run db:seed      # Insérer les données initiales
+npm run db:migrate   # Créer une migration versionnée
+npm run db:studio    # Ouvrir Prisma Studio (GUI base de données)
 ```
 
 ---
 
-## Modèles de données définis
+## Déploiement Vercel
 
-Les interfaces TypeScript suivantes sont définies dans `types/type.tsx` et servent de contrat pour l'ensemble de l'application :
+### Variables d'environnement requises
 
-| Entité | Champs principaux |
+Dans **Vercel Dashboard → Settings → Environment Variables**, ajoutez :
+
+| Variable | Valeur |
 |---|---|
-| `Article` | id, référence, désignation, catégorie, classification ABC, unité, seuils min/max, prix, stock, fournisseur, emplacement, codes-barres |
-| `Category` | id, nom, description, parent, rotation, classification auto, actif |
-| `Supplier` | id, nom, contact, email, téléphone, adresse, pays, délai livraison, conditions paiement, remise, certifications |
-| `Movement` | id, référence, type, article, quantité, entrepôt source/destination, emplacement, utilisateur, dates, statut, lot, coût |
-| `Warehouse` | id, nom, code, adresse, pays, responsable, superficie, capacité max, occupation, type, température |
+| `DATABASE_URL` | URL session pooler Supabase (port 5432) |
+| `DIRECT_URL` | Même URL (ou direct connection) |
+| `AUTH_SECRET` | Secret aléatoire 32 bytes |
+| `NEXTAUTH_URL` | `https://votre-domaine.vercel.app` |
+| `NEXT_PUBLIC_APP_NAME` | `StockAirys` |
+| `NEXT_PUBLIC_APP_VERSION` | `1.0.0` |
+
+### Déploiement automatique
+
+Chaque push sur la branche `main` déclenche automatiquement un redéploiement via l'intégration GitHub → Vercel.
+
+### Points importants pour Vercel
+
+- `prisma generate` s'exécute automatiquement avant `next build` (configuré dans package.json)
+- Le middleware utilise `auth.config.ts` (Edge-compatible) — pas de Node.js APIs
+- `bcryptjs` n'est chargé que dans les API routes (Node.js runtime), pas dans le middleware (Edge runtime)
 
 ---
 
-## Modèle de base de données
-
-### Technologie recommandée
-
-| Couche | Outil | Raison |
-|---|---|---|
-| Base de données | **PostgreSQL** | Robustesse, types avancés (jsonb, enum natif), support Prisma excellent |
-| ORM | **Prisma** | Typage TypeScript auto-généré, migrations versionnées, client fluent |
-| Auth | **NextAuth.js v5** | Intégration Next.js native, sessions JWT, providers OAuth |
-| Cache | **Redis** (optionnel) | Cache des KPI dashboard, sessions, alertes temps réel |
-
-### Architecture des relations
-
-```text
-User ──────────────────────────────────────────────────┐
-│ (effectue)                                            │ (crée)
-▼                                                       ▼
-Movement ──── MovementLine ──── Article ────── Alert
-                    │               │
-                    │           ┌───┴─────────────────┐
-                    │           │                     │
-               Location      Category            Supplier
-                    │        (arbre)          ┌──────┴──────┐
-                    │                         │             │
-               Warehouse                 Reception      Order
-                                              │             │
-                                        ReceptionLine  OrderLine
-```
-
-### Schéma Prisma complet
-
-```prisma
-// ─────────────────────────────────────────────────────────────
-// prisma/schema.prisma
-// ─────────────────────────────────────────────────────────────
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-// ── Utilisateurs & Auth ───────────────────────────────────────
-
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
-  role      Role     @default(OPERATOR)
-  password  String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  movements     Movement[]
-  resolvedAlerts Alert[]   @relation("ResolvedBy")
-
-  @@map("users")
-}
-
-enum Role {
-  ADMIN
-  MANAGER
-  OPERATOR
-  VIEWER
-}
-
-// ── Catégories (arbre parent/enfant) ─────────────────────────
-
-model Category {
-  id                 Int        @id @default(autoincrement())
-  name               String     @unique
-  description        String?
-  color              String     @default("#6366f1")
-  parentId           Int?
-  parent             Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children           Category[] @relation("CategoryTree")
-  seuilRotation      Float      @default(0)
-  autoClassification Boolean    @default(false)
-  active             Boolean    @default(true)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-
-  articles Article[]
-
-  @@map("categories")
-}
-
-// ── Fournisseurs ──────────────────────────────────────────────
-
-model Supplier {
-  id             Int              @id @default(autoincrement())
-  name           String
-  contact        String?
-  email          String?          @unique
-  phone          String?
-  address        String?
-  city           String?
-  postalCode     String?
-  country        String           @default("CI")
-  deliveryTime   Int?
-  paymentTerms   String?
-  discount       Float            @default(0)
-  rating         Float            @default(0)
-  notes          String?
-  status         SupplierStatus   @default(ACTIVE)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  certifications SupplierCertification[]
-  articles       Article[]
-  receptions     Reception[]
-  orders         Order[]
-
-  @@map("suppliers")
-}
-
-enum SupplierStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-}
-
-model SupplierCertification {
-  id         Int      @id @default(autoincrement())
-  supplierId Int
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  name       String
-
-  @@map("supplier_certifications")
-}
-
-// ── Entrepôts & Emplacements ──────────────────────────────────
-
-model Warehouse {
-  id          Int             @id @default(autoincrement())
-  name        String
-  code        String          @unique
-  address     String?
-  city        String?
-  postalCode  String?
-  country     String          @default("CI")
-  manager     String?
-  phone       String?
-  email       String?
-  area        Float?
-  maxCapacity Int             @default(0)
-  type        WarehouseType   @default(MAIN)
-  temperature TemperatureType @default(AMBIENT)
-  notes       String?
-  status      WarehouseStatus @default(ACTIVE)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  locations       Location[]
-  sourceMovements Movement[]  @relation("SourceWarehouse")
-  destMovements   Movement[]  @relation("DestWarehouse")
-  receptions      Reception[]
-  orders          Order[]
-
-  @@map("warehouses")
-}
-
-enum WarehouseType   { MAIN REGIONAL SPECIALIZED TRANSIT }
-enum TemperatureType { AMBIENT REFRIGERATED FROZEN CONTROLLED }
-enum WarehouseStatus { ACTIVE INACTIVE MAINTENANCE }
-
-model Location {
-  id          Int       @id @default(autoincrement())
-  code        String    @unique
-  warehouseId Int
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  zone        String?
-  aisle       String?
-  span        String?
-  level       String?
-  maxCapacity Int       @default(1)
-  createdAt   DateTime  @default(now())
-
-  stocks          Stock[]
-  sourceLines     MovementLine[] @relation("SourceLocation")
-  destLines       MovementLine[] @relation("DestLocation")
-
-  @@map("locations")
-}
-
-// ── Articles & Codes-barres ───────────────────────────────────
-
-model Article {
-  id             Int              @id @default(autoincrement())
-  reference      String           @unique
-  designation    String
-  description    String?
-  categoryId     Int?
-  category       Category?        @relation(fields: [categoryId], references: [id])
-  classification Classification   @default(C)
-  uniteMesure    String
-  weight         Float?
-  volume         Float?
-  seuilMin       Int              @default(0)
-  seuilMax       Int              @default(0)
-  unitPrice      Float            @default(0)
-  supplierId     Int?
-  supplier       Supplier?        @relation(fields: [supplierId], references: [id])
-  status         ArticleStatus    @default(ACTIVE)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  barcodes       ArticleBarcode[]
-  stocks         Stock[]
-  movementLines  MovementLine[]
-  receptionLines ReceptionLine[]
-  orderLines     OrderLine[]
-  alerts         Alert[]
-
-  @@map("articles")
-}
-
-enum Classification { A B C }
-enum ArticleStatus  { ACTIVE INACTIVE DISCONTINUED }
-
-model ArticleBarcode {
-  id        Int     @id @default(autoincrement())
-  articleId Int
-  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  code      String  @unique
-
-  @@map("article_barcodes")
-}
-
-// ── Stock (quantité par article × emplacement × lot) ─────────
-
-model Stock {
-  id         Int       @id @default(autoincrement())
-  articleId  Int
-  article    Article   @relation(fields: [articleId], references: [id])
-  locationId Int
-  location   Location  @relation(fields: [locationId], references: [id])
-  quantity   Int       @default(0)
-  lotNumber  String?
-  expiryDate DateTime?
-  updatedAt  DateTime  @updatedAt
-
-  @@unique([articleId, locationId, lotNumber])
-  @@map("stocks")
-}
-
-// ── Mouvements de stock ───────────────────────────────────────
-
-model Movement {
-  id                Int            @id @default(autoincrement())
-  reference         String         @unique
-  type              MovementType
-  sourceWarehouseId Int?
-  sourceWarehouse   Warehouse?     @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
-  destWarehouseId   Int?
-  destWarehouse     Warehouse?     @relation("DestWarehouse", fields: [destWarehouseId], references: [id])
-  userId            Int?
-  user              User?          @relation(fields: [userId], references: [id])
-  status            MovementStatus @default(PLANNED)
-  reason            String?
-  notes             String?
-  executionDate     DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  lines MovementLine[]
-
-  @@map("movements")
-}
-
-enum MovementType   { ENTRY EXIT TRANSFER ADJUSTMENT }
-enum MovementStatus { PLANNED IN_PROGRESS COMPLETED CANCELLED }
-
-model MovementLine {
-  id               Int       @id @default(autoincrement())
-  movementId       Int
-  movement         Movement  @relation(fields: [movementId], references: [id], onDelete: Cascade)
-  articleId        Int
-  article          Article   @relation(fields: [articleId], references: [id])
-  sourceLocationId Int?
-  sourceLocation   Location? @relation("SourceLocation", fields: [sourceLocationId], references: [id])
-  destLocationId   Int?
-  destLocation     Location? @relation("DestLocation", fields: [destLocationId], references: [id])
-  quantity         Int
-  unitCost         Float     @default(0)
-  lotNumber        String?
-
-  @@map("movement_lines")
-}
-
-// ── Réceptions ────────────────────────────────────────────────
-
-model Reception {
-  id           Int             @id @default(autoincrement())
-  reference    String          @unique
-  supplierId   Int
-  supplier     Supplier        @relation(fields: [supplierId], references: [id])
-  warehouseId  Int
-  warehouse    Warehouse       @relation(fields: [warehouseId], references: [id])
-  orderId      Int?            @unique
-  order        Order?          @relation(fields: [orderId], references: [id])
-  status       ReceptionStatus @default(PENDING)
-  expectedDate DateTime
-  receivedDate DateTime?
-  notes        String?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-
-  lines ReceptionLine[]
-
-  @@map("receptions")
-}
-
-enum ReceptionStatus { PENDING RECEIVED PARTIAL CANCELLED }
-
-model ReceptionLine {
-  id          Int       @id @default(autoincrement())
-  receptionId Int
-  reception   Reception @relation(fields: [receptionId], references: [id], onDelete: Cascade)
-  articleId   Int
-  article     Article   @relation(fields: [articleId], references: [id])
-  orderedQty  Int
-  receivedQty Int       @default(0)
-  unitPrice   Float
-
-  @@map("reception_lines")
-}
-
-// ── Commandes ─────────────────────────────────────────────────
-
-model Order {
-  id           Int         @id @default(autoincrement())
-  reference    String      @unique
-  type         OrderType
-  supplierId   Int?
-  supplier     Supplier?   @relation(fields: [supplierId], references: [id])
-  client       String?
-  warehouseId  Int?
-  warehouse    Warehouse?  @relation(fields: [warehouseId], references: [id])
-  status       OrderStatus @default(DRAFT)
-  orderDate    DateTime    @default(now())
-  expectedDate DateTime?
-  notes        String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  lines     OrderLine[]
-  reception Reception?
-
-  @@map("orders")
-}
-
-enum OrderType   { PURCHASE SALE }
-enum OrderStatus { DRAFT CONFIRMED IN_PROGRESS DELIVERED CANCELLED }
-
-model OrderLine {
-  id        Int     @id @default(autoincrement())
-  orderId   Int
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  articleId Int
-  article   Article @relation(fields: [articleId], references: [id])
-  quantity  Int
-  unitPrice Float
-
-  @@map("order_lines")
-}
-
-// ── Alertes ───────────────────────────────────────────────────
-
-model Alert {
-  id          Int         @id @default(autoincrement())
-  reference   String      @unique
-  type        AlertType
-  level       AlertLevel
-  articleId   Int?
-  article     Article?    @relation(fields: [articleId], references: [id])
-  warehouseId Int?
-  message     String
-  status      AlertStatus @default(ACTIVE)
-  createdAt   DateTime    @default(now())
-  resolvedAt  DateTime?
-  resolvedById Int?
-  resolvedBy  User?       @relation("ResolvedBy", fields: [resolvedById], references: [id])
-
-  @@map("alerts")
-}
-
-enum AlertType   { LOW_STOCK EXPIRY CAPACITY THRESHOLD }
-enum AlertLevel  { CRITICAL HIGH MEDIUM LOW }
-enum AlertStatus { ACTIVE ACKNOWLEDGED RESOLVED }
-```
-
-### Correspondance types TypeScript → tables SQL
-
-| Interface TS (`types/type.tsx`) | Table Prisma | Notes |
-| --- | --- | --- |
-| `Article` | `articles` | `bareCodes` → table `article_barcodes` |
-| `Category` | `categories` | `parent: string` → `parentId: Int` (FK auto-référentielle) |
-| `Supplier` | `suppliers` + `supplier_certifications` | `certifications: string[]` → table dédiée |
-| `Warehouse` | `warehouses` | `currentOccupation` → calculé depuis `stocks` |
-| `Movement` | `movements` + `movement_lines` | Champ `article` unique → lignes multiples |
-| `Reception` | `receptions` + `reception_lines` | Idem |
-| `Order` | `orders` + `order_lines` | `supplier: string` → `supplierId: Int` (FK) |
-| `Alert` | `alerts` | `warehouse?: string` → `warehouseId?: Int` (FK) |
-| — | `users` | À créer (non encore dans les types TS) |
-| — | `locations` | À créer (non encore dans les types TS) |
-| — | `stocks` | À créer — table pivot article × emplacement × lot |
-
-### Mise en place rapide (Prisma)
-
-```bash
-# 1. Installer Prisma
-npm install prisma @prisma/client
-npx prisma init
-
-# 2. Configurer .env
-echo 'DATABASE_URL="postgresql://user:password@localhost:5432/stockairys"' >> .env
-
-# 3. Coller le schéma ci-dessus dans prisma/schema.prisma, puis :
-npx prisma migrate dev --name init
-
-# 4. Générer le client TypeScript
-npx prisma generate
-
-# 5. (Optionnel) Ouvrir Prisma Studio pour explorer les données
-npx prisma studio
-```
-
-### Champs calculés à ne pas stocker en base
-
-Ces valeurs doivent être **calculées à la requête** (via Prisma aggregations ou SQL) plutôt que stockées :
-
-| Champ UI | Calcul |
-|---|---|
-| `currentOccupation` (Warehouse) | `SUM(stocks.quantity)` filtré par warehouseId |
-| `occupiedLocations` (Warehouse) | `COUNT(locations WHERE stocks.quantity > 0)` |
-| `nbArticles` (Category) | `COUNT(articles WHERE categoryId = ?)` |
-| `stockValue` (Category) | `SUM(articles.unitPrice × stocks.quantity)` |
-| `totalAmount` (Order) | `SUM(order_lines.quantity × order_lines.unitPrice)` |
-| `totalValue` (Reception) | `SUM(reception_lines.receivedQty × reception_lines.unitPrice)` |
-| `nbOrder` / `totalAmount` (Supplier) | Aggrégats sur la table `orders` |
-
----
-
-## Feuille de route recommandée
-
-### Phase 1 — Stabilisation (priorité haute)
-1. Compléter la page Entrepôts (tableau, KPI, liste des emplacements)
-2. Connecter une base de données (PostgreSQL + Prisma)
-3. Créer les routes API CRUD pour chaque entité
-4. Ajouter l'authentification (NextAuth.js)
-5. Configurer les variables d'environnement
-
-### Phase 2 — Modules manquants
-6. Module Réceptions
-7. Module Commandes
-8. Page Paramètres
-9. Page Alertes
-
-### Phase 3 — Valeur ajoutée
-10. Export CSV/PDF
-11. Graphiques dashboard (Recharts ou Chart.js)
-12. Prévisions de stock
-13. Rapports périodiques
-14. Rôles et permissions
-
-### Phase 4 — Production
-15. Tests unitaires et d'intégration
-16. CI/CD
-17. Monitoring et logs
-18. Documentation API
+## Améliorations futures
+
+### Fonctionnalités prioritaires
+
+- [ ] **Brancher les pages sur l'API** — les pages UI utilisent encore des données mock ; connecter chaque page à son endpoint `/api/*`
+- [ ] **Graphiques dashboard** — intégrer Recharts ou Chart.js pour les courbes de mouvements et camemberts
+- [ ] **Export CSV/Excel** — articles, mouvements, rapports
+- [ ] **Import en masse** — upload CSV pour alimenter le stock initial
+- [ ] **Recherche globale** — câbler la barre de recherche du header
+- [ ] **Notifications temps réel** — alertes stock bas via WebSocket ou Supabase Realtime
+- [ ] **Gestion des images** — upload photo pour les articles
+
+### Qualité et infrastructure
+
+- [ ] **Rôles et permissions** — restreindre les actions selon le rôle (ADMIN/MANAGER/OPERATOR/VIEWER)
+- [ ] **Tests** — Jest + React Testing Library pour les composants clés
+- [ ] **Pagination** — sur tous les tableaux (actuellement chargement complet)
+- [ ] **Gestion d'erreurs UI** — états d'erreur et de chargement sur chaque page
+- [ ] **Journal d'audit** — traçabilité complète des actions utilisateur
+- [ ] **i18n** — internationalisation formelle (actuellement mixte FR/EN)
+- [ ] **Mode mobile** — sidebar en drawer sur petit écran

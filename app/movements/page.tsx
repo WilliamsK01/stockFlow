@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/main-layout";
 import { MovementDialog } from "@/components/movements/movement-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -10,81 +11,52 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Movement } from "@/types/type"
-import { ArrowUpDown, Eye, Filter, MoreHorizontal, Plus, RotateCcw, Search, TrendingDown, TrendingUp } from "lucide-react";
-import { useState } from "react";
-
-const mockMovements: Movement[] = [
-    {
-        id: 1,
-        reference: "MVT-2024-001",
-        type: "Entry",
-        article: "REF-001",
-        designation: "Vis M6x20 Inox",
-        quantity: 150,
-        sourceWarehouse: "",
-        destinationWarehouse: "EP-001",
-        sourceLocation: "",
-        destinationLocation: "A1-B2-C3",
-        user: "Pierre Martin",
-        creationDate: new Date("2024-01-15T10:30:00Z"),
-        executionDate: new Date("2024-01-15T14:20:00Z"),
-        status: "Finished",
-        reason: "Order receipt CMD-2024-001",
-        lotNumber: "LOT-2024-001",
-        unitCost: 25000,
-        notes: "",
-    },
-    {
-        id: 2,
-        reference: "MVT-2024-002",
-        type: "Output",
-        article: "REF-002",
-        designation: "Huile moteur 5L",
-        quantity: -25,
-        sourceWarehouse: "EP-001",
-        destinationWarehouse: "",
-        sourceLocation: "B2-A1-D4",
-        destinationLocation: "",
-        user: "Marie Dubois",
-        creationDate: new Date("2024-01-15T11:45:00Z"),
-        executionDate: new Date("2024-01-15T15:30:00Z"),
-        status: "Finished",
-        reason: "Order shipping ORD-2024-089",
-        lotNumber: "LOT-2024-002",
-        unitCost: 15243,
-        notes: "",
-    },
-    {
-        id: 3,
-        reference: "MVT-2024-003",
-        type: "Transfer",
-        article: "REF-003",
-        designation: "Roulement SKF",
-        quantity: 10,
-        sourceWarehouse: "EP-001",
-        destinationWarehouse: "DR-003",
-        sourceLocation: "C1-B3-A2",
-        destinationLocation: "A2-B1-C1",
-        user: "Jean Mareau",
-        creationDate: new Date("2024-01-15T09:15:00Z"),
-        executionDate: new Date(""),
-        status: "In Progress",
-        reason: "Regional depot replenishment",
-        lotNumber: "LOT-2024-003",
-        unitCost: 12800,
-        notes: "",
-    }
-];
+import { ArrowUpDown, Eye, Filter, Loader2, MoreHorizontal, Plus, RotateCcw, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 
 export default function MovementsPage() {
-    const [movements, setMovements] = useState<Movement[]>(mockMovements)
+    const [movements, setMovements] = useState<Movement[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedType, setSelectedType] = useState("all")
     const [selectedStatus, setSelectedStatus] = useState("all")
     const [selectedPeriod, setSelectedPeriod] = useState("today")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const [editingMovement, setEditingMovement] = useState<Movement | undefined>(
-        undefined,)
+    const [editingMovement, setEditingMovement] = useState<Movement | undefined>(undefined)
+
+    useEffect(() => {
+        fetch("/api/movements")
+            .then((r) => r.json())
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .then((data: any[]) => setMovements(data.map((m: any) => {
+                const firstLine = m.lines?.[0];
+                return {
+                    ...m,
+                    article: firstLine?.article?.reference ?? "—",
+                    designation: firstLine?.article?.designation ?? "—",
+                    quantity: firstLine?.quantity ?? 0,
+                    sourceWarehouse: m.sourceWarehouse?.name ?? "",
+                    destinationWarehouse: m.destWarehouse?.name ?? "",
+                    sourceLocation: firstLine?.sourceLocation?.code ?? "",
+                    destinationLocation: firstLine?.destLocation?.code ?? "",
+                    user: m.user?.name ?? "—",
+                    creationDate: m.createdAt ? new Date(m.createdAt) : new Date(),
+                    executionDate: m.executionDate ? new Date(m.executionDate) : new Date(),
+                    lotNumber: firstLine?.lotNumber ?? "",
+                    unitCost: firstLine?.unitCost ?? 0,
+                };
+            })))
+            .catch(() => toast.error("Failed to load movements"))
+            .finally(() => setLoading(false))
+    }, [])
+
+    if (loading) return (
+        <MainLayout>
+            <div className="flex h-96 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        </MainLayout>
+    );
 
     const filteredMovements = movements.filter((movement) => {
         const matchesSearch =
@@ -136,6 +108,40 @@ export default function MovementsPage() {
         outputs: movements.filter((m) => m.type === "Output").length,
         transfers: movements.filter((m) => m.type === "Transfer").length,
     }
+
+    const handleSave = async (movementData: Omit<Movement, "id" | "reference" | "user" | "creationDate" | "executionDate" | "status">) => {
+        try {
+            if (editingMovement) {
+                const { ...scalarFields } = movementData as Movement;
+                const res = await fetch(`/api/movements/${editingMovement.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(scalarFields),
+                });
+                if (!res.ok) throw new Error();
+                const updated: Movement = await res.json();
+                setMovements((prev) =>
+                    prev.map((m) => (m.id === editingMovement.id ? updated : m))
+                );
+                toast.success("Movement updated successfully");
+            } else {
+                const res = await fetch("/api/movements", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(movementData),
+                });
+                if (!res.ok) throw new Error();
+                const created: Movement = await res.json();
+                setMovements((prev) => [...prev, created]);
+                toast.success("Movement created successfully");
+            }
+        } catch {
+            toast.error("Failed to save movement");
+        } finally {
+            setIsDialogOpen(false);
+            setEditingMovement(undefined);
+        }
+    };
 
     return (
         <MainLayout>
@@ -357,7 +363,13 @@ export default function MovementsPage() {
                                                     {movement.status === "In Progress" && (
                                                         <>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="gap-2">
+                                                            <DropdownMenuItem
+                                                                className="gap-2"
+                                                                onClick={() => {
+                                                                    setEditingMovement(movement);
+                                                                    setIsDialogOpen(true);
+                                                                }}
+                                                            >
                                                                 Edit
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem className="gap-2 text-destructive">
@@ -379,39 +391,7 @@ export default function MovementsPage() {
                 <MovementDialog
                     open={isDialogOpen}
                     onOpenChange={setIsDialogOpen}
-                    onSave={(movementData) => {
-                        if (editingMovement) {
-                            // 1) Pour la mise à jour, il faut fusionner movementData AU NIVEAU DES PROPRIÉTÉS
-                            setMovements(
-                                movements.map((m) => m.id === editingMovement.id ? { ...m, ...movementData } : m     // <-- étale les props de movementData,
-                                )
-                            );
-                        } else {
-                            // 2) Calculer proprement le prochain id
-                            const maxId = movements.length > 0 ? Math.max(...movements.map((m) => m.id)) : 0;
-
-                            const nextId = maxId + 1;
-
-                            // 3) Construire la référence avec padStart sur une string
-                            const nextRef = `MVT-2024-${String(nextId).padStart(3, "0")}`;
-
-                            // 4) Dates au format Date, pas string, et executionDate ne peut pas être null si interface attend Date
-                            const newMovement: Movement = {
-                                ...movementData,
-                                id: nextId,
-                                reference: nextRef,
-                                user: "Current user",
-                                creationDate: new Date(),              // <-- Date()
-                                executionDate: new Date(),             // <-- ou nouvelle Date d’exécution si tu en as une
-                                status: "Planned",
-                            };
-
-                            setMovements([...movements, newMovement]);
-                        }
-
-                        setIsDialogOpen(false);
-                        setEditingMovement(undefined);
-                    }}
+                    onSave={handleSave}
                 />
 
             </div>

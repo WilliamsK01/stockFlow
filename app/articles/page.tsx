@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,74 +45,41 @@ import {
   Eye,
   Package,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { ArticleDialog } from "@/components/articles/article-dialog";
 import { Article } from "@/types/type";
-
-// Données de démonstration à remplacer par notre API
-const mockArticles: Article[] = [
-  {
-    id: 1,
-    reference: "REF-001",
-    designation: "Vis M6x20 Inox",
-    description: "Description here", // **NE PAS OUBLIER**
-    category: "Screws",
-    classification: "A",
-    uniteMesure: "Piece",
-    seuilMin: 50,
-    seuilMax: 500,
-    unitPrice: 25000,
-    supplier: "ACM Visserie",
-    location: "A1-B2-C3",
-    bareCodes: "1234567890123", // **NE PAS OUBLIER**
-    stock: 150,
-    status: "Active",
-  },
-  {
-    id: 2,
-    reference: "REF-002",
-    designation: "Huile moteur 5L SAE 10w40",
-    description: "Description here", // **NE PAS OUBLIER**
-    category: "Lubricant",
-    classification: "B",
-    uniteMesure: "Liter",
-    seuilMin: 10,
-    seuilMax: 100,
-    unitPrice: 150057.5,
-    supplier: "PetroCI",
-    location: "B2-A1-D4",
-    bareCodes: "1234567890123", // **NE PAS OUBLIER**
-    stock: 25,
-    status: "Active",
-  },
-  {
-    id: 3,
-    reference: "REF-003",
-    designation: "Roulement SKF 6205-2RS",
-    description: "Description here",
-    category: "Bearings",
-    classification: "A",
-    uniteMesure: "Piece",
-    stock: 5,
-    seuilMin: 15,
-    seuilMax: 75,
-    unitPrice: 12651.8,
-    supplier: "SKF Distribution",
-    location: "C1-B3-A2",
-    bareCodes: "1234567890123", // **NE PAS OUBLIER**
-    status: "Low stock",
-  },
-];
+import { toast } from "sonner";
 
 export default function ArticlesPage() {
-  const [articles, setArticles] = useState<Article[]>(mockArticles);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedClassification, setSelectedClassification] =
-    useState("all");
+  const [selectedClassification, setSelectedClassification] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<Article | undefined>(
-    undefined,
+  const [editingArticle, setEditingArticle] = useState<Article | undefined>(undefined);
+
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((data: any[]) => setArticles(data.map((a: any) => ({
+        ...a,
+        category: a.category?.name ?? a.category ?? "",
+        supplier: a.supplier?.name ?? a.supplier ?? "",
+        stock: a.stocks?.reduce((s: number, l: any) => s + (l.quantity ?? 0), 0) ?? a.stock ?? 0,
+      }))))
+      .catch(() => toast.error('Failed to load articles'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <MainLayout>
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </MainLayout>
   );
 
   const filteredArticles = articles.filter((article) => {
@@ -153,6 +120,7 @@ export default function ArticlesPage() {
       </Badge>
     );
   };
+
   const getClassificationBadge = (classification: string) => {
     const colors = {
       A: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
@@ -180,6 +148,47 @@ export default function ArticlesPage() {
   const handleAdd = () => {
     setEditingArticle(undefined);
     setIsDialogOpen(true);
+  };
+
+  const handleSave = async (data: Article) => {
+    try {
+      if (editingArticle) {
+        const r = await fetch(`/api/articles/${editingArticle.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!r.ok) throw new Error();
+        const updated = await r.json();
+        setArticles(prev => prev.map(a => a.id === updated.id ? updated : a));
+        toast.success('Article updated');
+      } else {
+        const r = await fetch('/api/articles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!r.ok) throw new Error();
+        const created = await r.json();
+        setArticles(prev => [...prev, created]);
+        toast.success('Article created');
+      }
+      setIsDialogOpen(false);
+      setEditingArticle(undefined);
+    } catch {
+      toast.error('Error saving article');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const r = await fetch(`/api/articles/${id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error();
+      setArticles(prev => prev.filter(a => a.id !== id));
+      toast.success('Article deleted');
+    } catch {
+      toast.error('Error deleting article');
+    }
   };
 
   return (
@@ -394,7 +403,10 @@ export default function ArticlesPage() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-destructive">
+                          <DropdownMenuItem
+                            className="gap-2 text-destructive"
+                            onClick={() => handleDelete(article.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
@@ -411,27 +423,7 @@ export default function ArticlesPage() {
               open={isDialogOpen}
               onOpenChange={setIsDialogOpen}
               article={editingArticle}
-              onSave={(articleData) => {
-                if (editingArticle) {
-                  // Modifier l'article existant
-                  setArticles(
-                    articles.map((a) =>
-                      a.id === editingArticle.id ? { ...a, ...articleData } : a,
-                    ),
-                  );
-                } else {
-                  // Ajouter un nouvel article
-                  const newArticle: Article = {
-                    ...articleData, // son id
-                    id: Math.max(...articles.map((a) => a.id)) + 1, // votre nouveau id, qui écrase
-                    status: "Active",
-                  };
-
-                  setArticles([...articles, newArticle]);
-                }
-                setIsDialogOpen(false);
-                setEditingArticle(undefined);
-              }}
+              onSave={handleSave}
             />
             {/* endDialog */}
           </CardContent>

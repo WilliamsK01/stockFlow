@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Supplier } from "@/types/type"
-import { Clock, DollarSign, Edit, Eye, Filter, MoreHorizontal, Percent, Plus, Search, Star, Trash2, Users } from "lucide-react"
-import { useState } from "react"
+import { Clock, DollarSign, Edit, Eye, Filter, Loader2, MoreHorizontal, Percent, Plus, Search, Star, Trash2, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 // Import du CountrySelector et de la liste de pays enrichie
 import { CountrySelector } from "@/components/utils/selector"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,77 +15,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { SupplierDialog } from "@/components/suppliers/supplier-dialog"
 import { FILTER_COUNTRIES } from "@/components/utils/countries"
+import { toast } from "sonner"
 
 
-
-const mockSuppliers: Supplier[] = [
-    {
-        id: 1,
-        name: "ACME Visserie",
-        contact: "John Doe",
-        email: "john.doe@acme.ci",
-        phone: "+225 05 960 84 000",
-        address: "Avenue des chantiers Koumassi, Abidjan",
-        city: "Abidjan",
-        postalCode: "",
-        country: "CI",
-        deliveryTime: 3,
-        paymentTerms: "30 days",
-        discount: 5.1,
-        notes: 4.5,
-        nbOrder: 45,
-        totalAmount: 125430.5,
-        status: "Active",
-        certifications: ["ISO 9001", "CE"],
-    },
-    {
-        id: 2,
-        name: "PetroCI",
-        contact: "Marie Martin",
-        email: "marie@petroci.ci",
-        phone: "+225 07 960 84 078",
-        address: "Plateau, Abidjan",
-        city: "Abidjan",
-        postalCode: "",
-        country: "CI",
-        deliveryTime: 5,
-        paymentTerms: "45 days",
-        discount: 8.0,
-        notes: 4.2,
-        nbOrder: 32,
-        totalAmount: 89750.2,
-        status: "Active",
-        certifications: ["ISO 14001"],
-    },
-    {
-        id: 3,
-        name: "SKF Distribution",
-        contact: "Hans Muller",
-        email: "h.muller@skf-dist.de",
-        phone: "+49 30 12 34 56 78",
-        address: "789 Industriestraße, 10115 Berlin",
-        city: "Berlin",
-        postalCode: "",
-        country: "DE",
-        deliveryTime: 7,
-        paymentTerms: "60 days",
-        discount: 12.0,
-        notes: 4.8,
-        nbOrder: 28,
-        totalAmount: 156890.75,
-        status: "Active",
-        certifications: ["ISO 9001", "ISO 14001", "OHSAS 18001"],
-    }
-]
 
 export default function SuppliersPage() {
-    const [suppliers, setSuppliers] = useState<Supplier[]>(mockSuppliers)
+    const [suppliers, setSuppliers] = useState<Supplier[]>([])
+    const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedCountryCode, setSelectedCountryCode] = useState("all");
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | undefined>(undefined);
     const [isCountryOpen, setIsCountryOpen] = useState<boolean>(false);
+
+    useEffect(() => {
+        fetch('/api/suppliers')
+            .then(r => r.json())
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .then((data: any[]) => setSuppliers(data.map((s: any) => ({
+                ...s,
+                contact: s.contact ?? "",
+                email: s.email ?? "",
+                totalAmount: s.totalAmount ?? 0,
+                notes: s.notes ?? "",
+                nbOrder: s._count?.orders ?? s.nbOrder ?? 0,
+            }))))
+            .catch(() => toast.error('Error loading suppliers'))
+            .finally(() => setLoading(false));
+    }, []);
 
     // Liste de pays pour filtre, inclut l'option "All countries"
     const selectedCountry = FILTER_COUNTRIES.find(
@@ -96,8 +54,8 @@ export default function SuppliersPage() {
     const filteredSuppliers = suppliers.filter((supplier) => {
         const matchesSearch =
             supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            supplier.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            supplier.email.toLowerCase().includes(searchTerm.toLowerCase())
+            (supplier.contact ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (supplier.email ?? "").toLowerCase().includes(searchTerm.toLowerCase())
         const matchesCountry =
             selectedCountryCode === "all" ||
             supplier.country === selectedCountryCode;
@@ -125,6 +83,54 @@ export default function SuppliersPage() {
         }
         return <Badge className={colors[status as keyof typeof colors] || "bg-slate-100 text-gray-800"}> {status} </Badge>
     }
+
+    const handleSave = async (data: Supplier) => {
+        try {
+            if (editingSupplier) {
+                const r = await fetch(`/api/suppliers/${editingSupplier.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                if (!r.ok) throw new Error();
+                const updated = await r.json();
+                setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s));
+                toast.success('Supplier updated');
+            } else {
+                const r = await fetch('/api/suppliers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                if (!r.ok) throw new Error();
+                const created = await r.json();
+                setSuppliers(prev => [...prev, created]);
+                toast.success('Supplier created');
+            }
+            setIsDialogOpen(false);
+            setEditingSupplier(undefined);
+        } catch {
+            toast.error('Error saving supplier');
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        try {
+            await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+            setSuppliers(prev => prev.filter(s => s.id !== id));
+            toast.success('Deleted');
+        } catch {
+            toast.error('Error deleting');
+        }
+    };
+
+    if (loading) return (
+        <MainLayout>
+            <div className="flex h-96 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        </MainLayout>
+    );
 
     return (
         <MainLayout>
@@ -164,7 +170,9 @@ export default function SuppliersPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {Math.round(suppliers.reduce((sum, s) => sum + s.deliveryTime, 0) / suppliers.length)} days
+                                {suppliers.length > 0
+                                    ? Math.round(suppliers.reduce((sum, s) => sum + s.deliveryTime, 0) / suppliers.length)
+                                    : 0} days
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Average Delivery
@@ -179,7 +187,9 @@ export default function SuppliersPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {(suppliers.reduce((sum, s) => sum + s.discount, 0) / suppliers.length).toFixed(1)} %
+                                {suppliers.length > 0
+                                    ? (suppliers.reduce((sum, s) => sum + s.discount, 0) / suppliers.length).toFixed(1)
+                                    : "0.0"} %
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Negotiated
@@ -332,11 +342,14 @@ export default function SuppliersPage() {
                                                         <Eye className="h-4 w-4" />
                                                         See Details
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => { setEditingSupplier(supplier); setIsDialogOpen(true); }}>
                                                         <Edit className="h-4 w-4" />
                                                         Edit
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive"
+                                                        onClick={() => handleDelete(supplier.id)}
+                                                    >
                                                         <Trash2 className="h-4 w-4" />
                                                         Delete
                                                     </DropdownMenuItem>
@@ -354,26 +367,7 @@ export default function SuppliersPage() {
                     open={isDialogOpen}
                     onOpenChange={setIsDialogOpen}
                     supplier={editingSupplier}
-                    onSave={(supplierData) => {
-                        if (editingSupplier) {
-                            setSuppliers(
-                                suppliers.map((a) =>
-                                    a.id === editingSupplier.id ? { ...a, ...supplierData } : a,
-                                ),
-                            );
-                        } else {
-                            const newSupplier: Supplier = {
-                                ...supplierData,
-                                id: Math.max(...suppliers.map((a) => a.id)) + 1,
-                                nbOrder: 0,
-                                totalAmount: 0,
-                                notes: 0,
-                            }
-                            setSuppliers([...suppliers, newSupplier]);
-                        }
-                        setIsDialogOpen(false);
-                        setEditingSupplier(undefined);
-                    }}
+                    onSave={handleSave}
                 />
             </div>
         </MainLayout>

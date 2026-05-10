@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -64,7 +65,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           href="/dashboard"
           className="flex items-center gap-2 font-bold text-xl overflow-hidden min-w-0"
         >
-          <Package className="h-6 w-6 text-primary shrink-0" />
+          <Image
+            src="/logo.jpeg"
+            alt="StockAirys"
+            width={32}
+            height={32}
+            className="shrink-0 rounded-lg object-cover"
+          />
           <span
             className={cn(
               "text-primary whitespace-nowrap transition-all duration-300 overflow-hidden",

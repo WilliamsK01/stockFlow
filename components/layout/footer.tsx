@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, Clock, Wifi } from "lucide-react";
+import Image from "next/image";
+import { Clock, Wifi } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function Footer() {
@@ -31,7 +32,7 @@ export default function Footer() {
 
         {/* ── Left — Brand ───────────────────────────────── */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Package className="h-3.5 w-3.5 text-primary" />
+          <Image src="/logo.jpeg" alt="StockAirys" width={18} height={18} className="rounded object-cover shrink-0" />
           <span className="font-semibold text-foreground/80 tracking-tight">
             StockAirys
           </span>
@@ -52,7 +53,7 @@ export default function Footer() {
           </span>
           <Separator orientation="vertical" className="h-3" />
           <Wifi className="h-3 w-3 text-muted-foreground" />
-          <span className="text-muted-foreground">Mock data — no backend</span>
+          <span className="text-muted-foreground">Supabase PostgreSQL connecté</span>
         </div>
 
         {/* ── Right — Date & Clock ────────────────────────── */}

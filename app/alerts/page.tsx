@@ -1,124 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertTriangle,
-  Bell,
-  CheckCircle,
-  XCircle,
-  Eye,
-  Trash2,
-  MoreHorizontal,
-  Search,
-} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, Bell, CheckCircle, XCircle, Eye, Trash2, MoreHorizontal, Search, Loader2 } from "lucide-react";
 import { Alert } from "@/types/type";
-
-const mockAlerts: Alert[] = [
-  {
-    id: 1,
-    reference: "ALT-001",
-    type: "Low Stock",
-    level: "Critical",
-    article: "REF-003 - Roulement SKF",
-    message: "Stock at 5 units, minimum threshold is 15",
-    status: "Active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    reference: "ALT-002",
-    type: "Low Stock",
-    level: "High",
-    article: "REF-001 - Vis M6x20",
-    message: "Stock approaching minimum threshold (150/50)",
-    status: "Acknowledged",
-    createdAt: "2024-01-14",
-  },
-  {
-    id: 3,
-    reference: "ALT-003",
-    type: "Capacity",
-    level: "High",
-    warehouse: "Entrepôt Principal",
-    message: "Warehouse at 75% capacity (7500/10000)",
-    status: "Active",
-    createdAt: "2024-01-13",
-  },
-  {
-    id: 4,
-    reference: "ALT-004",
-    type: "Expiry",
-    level: "Medium",
-    article: "REF-002 - Huile moteur",
-    message: "Lot expires in 30 days (02/15/2024)",
-    status: "Active",
-    createdAt: "2024-01-12",
-  },
-  {
-    id: 5,
-    reference: "ALT-005",
-    type: "Threshold",
-    level: "Low",
-    article: "REF-001 - Vis M6x20",
-    message: "Reorder point reached: recommend ordering 350 units",
-    status: "Resolved",
-    createdAt: "2024-01-10",
-    resolvedAt: "2024-01-11",
-  },
-  {
-    id: 6,
-    reference: "ALT-006",
-    type: "Capacity",
-    level: "Critical",
-    warehouse: "Dépôt Régional HK",
-    message: "Warehouse over capacity (2100/3000 — 70%, but 42 occupied / 6 locations)",
-    status: "Active",
-    createdAt: "2024-01-15",
-  },
-];
+import { toast } from "sonner";
 
 const today = new Date().toISOString().split("T")[0];
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+
+  useEffect(() => {
+    fetch("/api/alerts")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((data: any[]) => setAlerts(data.map((a: any) => ({
+        ...a,
+        article: a.article
+          ? `${a.article.reference} — ${a.article.designation}`
+          : a.article,
+        warehouse: a.warehouseId ? `Entrepôt #${a.warehouseId}` : a.warehouse,
+        createdAt: a.createdAt?.split?.("T")[0] ?? a.createdAt ?? "",
+        resolvedAt: a.resolvedAt?.split?.("T")[0] ?? a.resolvedAt,
+      }))))
+      .catch(() => toast.error("Failed to load alerts"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <MainLayout>
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </MainLayout>
+  );
 
   const filteredAlerts = alerts.filter((alert) => {
     const matchesSearch =
@@ -135,9 +63,7 @@ export default function AlertsPage() {
   const activeCount = alerts.filter((a) => a.status === "Active").length;
   const criticalCount = alerts.filter((a) => a.level === "Critical").length;
   const acknowledgedCount = alerts.filter((a) => a.status === "Acknowledged").length;
-  const resolvedTodayCount = alerts.filter(
-    (a) => a.status === "Resolved" && a.resolvedAt === today
-  ).length;
+  const resolvedTodayCount = alerts.filter((a) => a.status === "Resolved" && a.resolvedAt === today).length;
 
   const getLevelBadge = (level: string) => {
     const colors: Record<string, string> = {
@@ -146,11 +72,7 @@ export default function AlertsPage() {
       Medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
       Low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
     };
-    return (
-      <Badge className={colors[level] ?? "bg-slate-100 text-slate-800"}>
-        {level}
-      </Badge>
-    );
+    return <Badge className={colors[level] ?? "bg-slate-100 text-slate-800"}>{level}</Badge>;
   };
 
   const getTypeBadge = (type: string) => {
@@ -160,49 +82,56 @@ export default function AlertsPage() {
       Capacity: "bg-purple-50 text-purple-700",
       Threshold: "bg-blue-50 text-blue-700",
     };
-    return (
-      <Badge className={colors[type] ?? "bg-slate-50 text-slate-700"}>
-        {type}
-      </Badge>
-    );
+    return <Badge className={colors[type] ?? "bg-slate-50 text-slate-700"}>{type}</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "Active") {
-      return <Badge variant="destructive">{status}</Badge>;
+    if (status === "Active") return <Badge variant="destructive">{status}</Badge>;
+    if (status === "Acknowledged") return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{status}</Badge>;
+    return <Badge className="bg-success text-success-foreground">{status}</Badge>;
+  };
+
+  const handleAcknowledge = async (id: number) => {
+    try {
+      await fetch(`/api/alerts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Acknowledged" }),
+      });
+      setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, status: "Acknowledged" } : a));
+    } catch {
+      toast.error("Error updating alert");
     }
-    if (status === "Acknowledged") {
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-          {status}
-        </Badge>
-      );
+  };
+
+  const handleResolve = async (id: number) => {
+    try {
+      await fetch(`/api/alerts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Resolved", resolvedAt: new Date().toISOString() }),
+      });
+      setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, status: "Resolved", resolvedAt: today } : a));
+    } catch {
+      toast.error("Error resolving alert");
     }
-    return (
-      <Badge className="bg-success text-success-foreground">{status}</Badge>
-    );
   };
 
-  const handleAcknowledge = (id: number) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "Acknowledged" } : a))
-    );
+  const handleDelete = async (id: number) => {
+    try {
+      await fetch(`/api/alerts/${id}`, { method: "DELETE" });
+      setAlerts((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Alert deleted");
+    } catch {
+      toast.error("Error deleting alert");
+    }
   };
 
-  const handleResolve = (id: number) => {
-    setAlerts((prev) =>
-      prev.map((a) =>
-        a.id === id ? { ...a, status: "Resolved", resolvedAt: today } : a
-      )
-    );
-  };
-
-  const handleDelete = (id: number) => {
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  const handleClearResolved = () => {
+  const handleClearResolved = async () => {
+    const resolved = alerts.filter((a) => a.status === "Resolved");
+    await Promise.all(resolved.map((a) => fetch(`/api/alerts/${a.id}`, { method: "DELETE" })));
     setAlerts((prev) => prev.filter((a) => a.status !== "Resolved"));
+    toast.success(`${resolved.length} resolved alert(s) cleared`);
   };
 
   return (
@@ -211,13 +140,10 @@ export default function AlertsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Alerts Management</h1>
-            <p className="text-sm text-muted-foreground">
-              Monitor and manage system alerts
-            </p>
+            <p className="text-sm text-muted-foreground">Monitor and manage system alerts</p>
           </div>
           <Button variant="outline" onClick={handleClearResolved} className="gap-2">
-            <XCircle className="h-4 w-4" />
-            Clear All Resolved
+            <XCircle className="h-4 w-4" />Clear All Resolved
           </Button>
         </div>
 
@@ -232,7 +158,6 @@ export default function AlertsPage() {
               <p className="text-xs text-muted-foreground">Requiring attention</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Critical</CardTitle>
@@ -243,7 +168,6 @@ export default function AlertsPage() {
               <p className="text-xs text-muted-foreground">High priority alerts</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Acknowledged</CardTitle>
@@ -254,7 +178,6 @@ export default function AlertsPage() {
               <p className="text-xs text-muted-foreground">In progress</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Resolved Today</CardTitle>
@@ -268,27 +191,15 @@ export default function AlertsPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Filters and Search</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Filters and Search</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-4 flex-wrap">
-              <div className="flex-1 min-w-[300px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by reference, article, warehouse, message..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+              <div className="flex-1 min-w-[300px] relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search by reference, article, warehouse, message..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
-
               <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="Low Stock">Low Stock</SelectItem>
@@ -297,11 +208,8 @@ export default function AlertsPage() {
                   <SelectItem value="Threshold">Threshold</SelectItem>
                 </SelectContent>
               </Select>
-
               <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Level" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Level" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
                   <SelectItem value="Critical">Critical</SelectItem>
@@ -310,11 +218,8 @@ export default function AlertsPage() {
                   <SelectItem value="Low">Low</SelectItem>
                 </SelectContent>
               </Select>
-
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="Active">Active</SelectItem>
@@ -329,9 +234,7 @@ export default function AlertsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Alerts list ({filteredAlerts.length})</CardTitle>
-            <CardDescription>
-              System-generated alerts based on stock rules and thresholds
-            </CardDescription>
+            <CardDescription>System-generated alerts based on stock rules and thresholds</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -353,12 +256,8 @@ export default function AlertsPage() {
                     <TableCell className="font-medium">{alert.reference}</TableCell>
                     <TableCell>{getTypeBadge(alert.type)}</TableCell>
                     <TableCell>{getLevelBadge(alert.level)}</TableCell>
-                    <TableCell className="font-medium">
-                      {alert.article ?? alert.warehouse ?? "—"}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                      {alert.message}
-                    </TableCell>
+                    <TableCell className="font-medium">{alert.article ?? alert.warehouse ?? "—"}</TableCell>
+                    <TableCell className="max-w-xs truncate text-sm text-muted-foreground">{alert.message}</TableCell>
                     <TableCell className="text-sm">{alert.createdAt}</TableCell>
                     <TableCell>{getStatusBadge(alert.status)}</TableCell>
                     <TableCell className="text-right">
@@ -370,27 +269,15 @@ export default function AlertsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            className="gap-2"
-                            onClick={() => handleAcknowledge(alert.id)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            Acknowledge
+                          <DropdownMenuItem className="gap-2" onClick={() => handleAcknowledge(alert.id)}>
+                            <Eye className="h-4 w-4" />Acknowledge
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="gap-2"
-                            onClick={() => handleResolve(alert.id)}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            Resolve
+                          <DropdownMenuItem className="gap-2" onClick={() => handleResolve(alert.id)}>
+                            <CheckCircle className="h-4 w-4" />Resolve
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="gap-2 text-destructive"
-                            onClick={() => handleDelete(alert.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
+                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(alert.id)}>
+                            <Trash2 className="h-4 w-4" />Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

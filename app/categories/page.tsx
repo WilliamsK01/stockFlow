@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { CategoryDialog } from "@/components/categories/category-dialog"
 import MainLayout from "@/components/layout/main-layout"
 import { Badge } from "@/components/ui/badge"
@@ -9,67 +10,37 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Category } from "@/types/type"
-import { Edit, Eye, MoreHorizontal, Package, Search, Tags, Trash2, TrendingUp } from "lucide-react"
-import { useState } from "react"
-
-
-
-const mockCategories: Category[] = [
-    {
-        id: 1,
-        name: "Screws",
-        description: "Screws, bolts, nuts and fixing accessories",
-        parent: "",
-        nbArticles: 145,
-        stockValue: 12450.5,
-        seuilRotation: 4.5,
-        autoClassification: true,
-        color: "#10B981",
-        active: true,
-    },
-    {
-        id: 2,
-        name: "Lubricants",
-        description: "Engine oil, greases, and maintenance products",
-        parent: "",
-        nbArticles: 67,
-        stockValue: 45230.8,
-        seuilRotation: 6.2,
-        autoClassification: true,
-        color: "#F59E0B",
-        active: true,
-    },
-    {
-        id: 3,
-        name: "Bearings",
-        description: "Ball bearings, roller bearings and accessories",
-        parent: "",
-        nbArticles: 89,
-        stockValue: 78920.3,
-        seuilRotation: 3.8,
-        autoClassification: true,
-        color: "#EF4444",
-        active: true,
-    },
-    {
-        id: 4,
-        name: "Vis Inox",
-        description: "Stainless steel screws",
-        parent: "Screws",
-        nbArticles: 45,
-        stockValue: 8920.2,
-        seuilRotation: 5.1,
-        autoClassification: true,
-        color: "#10B981",
-        active: true,
-    },
-]
+import { Edit, Eye, Loader2, MoreHorizontal, Package, Search, Tags, Trash2, TrendingUp } from "lucide-react"
+import { toast } from "sonner"
 
 export default function CategoriesPage() {
-    const [categories, setCategories] = useState(mockCategories)
+    const [categories, setCategories] = useState<Category[]>([])
+    const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const [editingCategory, setEditingCategrory] = useState<Category | undefined>(undefined,);
+    const [editingCategory, setEditingCategrory] = useState<Category | undefined>(undefined)
+
+    useEffect(() => {
+        fetch('/api/categories')
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .then((data: any[]) => setCategories(data.map((c: any) => ({
+                ...c,
+                nbArticles: c._count?.articles ?? c.nbArticles ?? 0,
+                stockValue: c.stockValue ?? 0,
+                parent: c.parent?.name ?? c.parent ?? "",
+            }))))
+            .catch(() => toast.error('Failed to load categories'))
+            .finally(() => setLoading(false))
+    }, [])
+
+    if (loading) return (
+        <MainLayout>
+            <div className="flex h-96 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        </MainLayout>
+    )
 
     const filteredCategories = categories.filter(
         (category) =>
@@ -88,6 +59,47 @@ export default function CategoriesPage() {
     }
     const stats = getClassificationStats()
 
+    const handleSave = async (data: Category) => {
+        try {
+            if (editingCategory) {
+                const r = await fetch(`/api/categories/${editingCategory.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                })
+                if (!r.ok) throw new Error()
+                const updated = await r.json()
+                setCategories(prev => prev.map(c => c.id === updated.id ? updated : c))
+                toast.success('Category updated')
+            } else {
+                const r = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                })
+                if (!r.ok) throw new Error()
+                const created = await r.json()
+                setCategories(prev => [...prev, created])
+                toast.success('Category created')
+            }
+            setIsDialogOpen(false)
+            setEditingCategrory(undefined)
+        } catch {
+            toast.error('Error saving category')
+        }
+    }
+
+    const handleDelete = async (id: number) => {
+        try {
+            const r = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
+            if (!r.ok) throw new Error()
+            setCategories(prev => prev.filter(c => c.id !== id))
+            toast.success('Category deleted')
+        } catch {
+            toast.error('Error deleting category')
+        }
+    }
+
     return (
         <MainLayout>
             <div className="space-y-6">
@@ -101,7 +113,7 @@ export default function CategoriesPage() {
                             Organize your items by category and manage ABC classification.
                         </p>
                     </div>
-                    <Button onClick={() => setIsDialogOpen(true)} className="gap-2">New category</Button>
+                    <Button onClick={() => { setEditingCategrory(undefined); setIsDialogOpen(true) }} className="gap-2">New category</Button>
                 </div>
                 {/* endHeader */}
 
@@ -140,7 +152,10 @@ export default function CategoriesPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {(categories.reduce((sum, c) => sum + c.seuilRotation, 0) / categories.length).toFixed(1)}x
+                                {categories.length > 0
+                                    ? (categories.reduce((sum, c) => sum + c.seuilRotation, 0) / categories.length).toFixed(1)
+                                    : "0.0"
+                                }x
                             </div>
                             <p className="text-xs text-muted-foreground">All categories</p>
                         </CardContent>
@@ -153,7 +168,7 @@ export default function CategoriesPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                XOF {(categories.reduce((sum, c) => sum + c.stockValue, 0).toLocaleString())}
+                                XOF {categories.reduce((sum, c) => sum + c.stockValue, 0).toLocaleString()}
                             </div>
                             <p className="text-xs text-muted-foreground">Valued stock</p>
                         </CardContent>
@@ -246,12 +261,18 @@ export default function CategoriesPage() {
                                                         <Eye className="h-4 w-4" />
                                                         See Details
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="gap-2">
+                                                    <DropdownMenuItem
+                                                        className="gap-2"
+                                                        onClick={() => { setEditingCategrory(category); setIsDialogOpen(true) }}
+                                                    >
                                                         <Edit className="mr-2 h-4 w-4" />
                                                         Edit
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className="gap-2 text-destructive">
+                                                    <DropdownMenuItem
+                                                        className="gap-2 text-destructive"
+                                                        onClick={() => handleDelete(category.id)}
+                                                    >
                                                         <Trash2 className="h-4 w-4" />
                                                         Delete
                                                     </DropdownMenuItem>
@@ -270,27 +291,7 @@ export default function CategoriesPage() {
                     open={isDialogOpen}
                     onOpenChange={setIsDialogOpen}
                     category={editingCategory}
-                    onSave={(categoryData) => {
-                        if (editingCategory) {
-                            setCategories(
-                                categories.map((c) =>
-                                    c.id === editingCategory.id ? {
-                                        ...c, ...categoryData
-                                    } : c,
-                                ),
-                            );
-                        } else {
-                            const newCategory: Category = {
-                                ...categoryData,
-                                id: Math.max(...categories.map((c) => c.id)) + 1,
-                                nbArticles: 0,
-                                stockValue: 0,
-                            }
-                            setCategories([...categories, newCategory])
-                        }
-                        setIsDialogOpen(false);
-                        setEditingCategrory(undefined);
-                    }}
+                    onSave={handleSave}
                 />
             </div>
         </MainLayout>
