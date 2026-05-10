@@ -77,16 +77,16 @@ export default function Header() {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/profile">
-                <User className="mr-2 h-4 w-4" /> Mon profil
+                <User className="mr-2 h-4 w-4" /> Profile
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Link href="/settings">
-                <Cog className="mr-2 h-4 w-4" /> Paramètres
+                <Cog className="mr-2 h-4 w-4" /> Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" /> Déconnexion
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
