@@ -39,7 +39,7 @@ export default function Footer() {
           <Separator orientation="vertical" className="h-3" />
           <span>v1.0.0</span>
           <Separator orientation="vertical" className="h-3" />
-          <span>© {new Date().getFullYear()} Williams KOFFI</span>
+          <span>© {new Date().getFullYear()} Powered By Airys</span>
         </div>
 
         {/* ── Center — System status ──────────────────────── */}
