@@ -167,6 +167,7 @@ model Warehouse {
   destMovements   Movement[]  @relation("DestWarehouse")
   receptions      Reception[]
   orders          Order[]
+  employees       Employee[]
 
   @@map("warehouses")
 }
@@ -465,4 +466,61 @@ enum AlertStatus {
   ACTIVE
   ACKNOWLEDGED
   RESOLVED
+}
+
+// ── Employés ──────────────────────────────────────────────────
+
+model Employee {
+  id          Int            @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  email       String         @unique
+  phone       String?
+  department  String?
+  position    String?
+  hireDate    DateTime?
+  salary      Float?
+  warehouseId Int?
+  warehouse   Warehouse?     @relation(fields: [warehouseId], references: [id])
+  status      EmployeeStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("employees")
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+// ── Paramètres de l'application ───────────────────────────────
+
+model Settings {
+  id                Int      @id @default(autoincrement())
+  companyName       String   @default("StockAirys SARL")
+  industry          String   @default("Manufacturing")
+  address           String   @default("")
+  city              String   @default("")
+  postalCode        String   @default("")
+  country           String   @default("Côte d'Ivoire")
+  email             String   @default("")
+  phone             String   @default("")
+  currency          String   @default("XOF")
+  unitOfMeasure     String   @default("Piece")
+  lowStockThreshold Int      @default(20)
+  language          String   @default("French")
+  dateFormat        String   @default("DD/MM/YYYY")
+  notifLowStock     Boolean  @default(true)
+  notifExpiry       Boolean  @default(true)
+  notifCapacity     Boolean  @default(true)
+  notifNewOrder     Boolean  @default(true)
+  notifDelivery     Boolean  @default(true)
+  notifEmail        Boolean  @default(false)
+  notifSms          Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  @@map("settings")
 }

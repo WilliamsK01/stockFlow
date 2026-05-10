@@ -12,10 +12,11 @@ import { useEffect, useState } from "react"
 import { CountrySelector } from "@/components/utils/selector"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { SupplierDialog } from "@/components/suppliers/supplier-dialog"
 import { FILTER_COUNTRIES } from "@/components/utils/countries"
 import { toast } from "sonner"
+import { useUserRole } from "@/hooks/use-user-role"
 
 
 
@@ -28,6 +29,7 @@ export default function SuppliersPage() {
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | undefined>(undefined);
     const [isCountryOpen, setIsCountryOpen] = useState<boolean>(false);
+    const { canCreate, canEdit, canDelete } = useUserRole();
 
     useEffect(() => {
         fetch('/api/suppliers')
@@ -37,6 +39,8 @@ export default function SuppliersPage() {
                 ...s,
                 contact: s.contact ?? "",
                 email: s.email ?? "",
+                // Normalise en E.164 : retire les espaces pour react-phone-number-input
+                phone: (s.phone ?? "").replace(/\s/g, ""),
                 totalAmount: s.totalAmount ?? 0,
                 notes: s.notes ?? "",
                 nbOrder: s._count?.orders ?? s.nbOrder ?? 0,
@@ -141,10 +145,12 @@ export default function SuppliersPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Supplier Management</h1>
                         <p className="text-muted-foreground">Manage your partners and their commercial conditions</p>
                     </div>
-                    <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add Supplier
-                    </Button>
+                    {canCreate && (
+                        <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add Supplier
+                        </Button>
+                    )}
                 </div>
                 {/* endHeader */}
 
@@ -342,17 +348,22 @@ export default function SuppliersPage() {
                                                         <Eye className="h-4 w-4" />
                                                         See Details
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => { setEditingSupplier(supplier); setIsDialogOpen(true); }}>
-                                                        <Edit className="h-4 w-4" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="text-destructive"
-                                                        onClick={() => handleDelete(supplier.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                        Delete
-                                                    </DropdownMenuItem>
+                                                    {canEdit && (
+                                                        <DropdownMenuItem onClick={() => { setEditingSupplier(supplier); setIsDialogOpen(true); }}>
+                                                            <Edit className="h-4 w-4" />
+                                                            Edit
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {canDelete && <DropdownMenuSeparator />}
+                                                    {canDelete && (
+                                                        <DropdownMenuItem
+                                                            className="text-destructive"
+                                                            onClick={() => handleDelete(supplier.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </TableCell>

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Category } from "@/types/type"
 import { Edit, Eye, Loader2, MoreHorizontal, Package, Search, Tags, Trash2, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
+import { useUserRole } from "@/hooks/use-user-role"
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([])
@@ -19,6 +20,7 @@ export default function CategoriesPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingCategory, setEditingCategrory] = useState<Category | undefined>(undefined)
+    const { canCreate, canEdit, canDelete } = useUserRole()
 
     useEffect(() => {
         fetch('/api/categories')
@@ -113,7 +115,9 @@ export default function CategoriesPage() {
                             Organize your items by category and manage ABC classification.
                         </p>
                     </div>
-                    <Button onClick={() => { setEditingCategrory(undefined); setIsDialogOpen(true) }} className="gap-2">New category</Button>
+                    {canCreate && (
+                        <Button onClick={() => { setEditingCategrory(undefined); setIsDialogOpen(true) }} className="gap-2">New category</Button>
+                    )}
                 </div>
                 {/* endHeader */}
 
@@ -261,21 +265,25 @@ export default function CategoriesPage() {
                                                         <Eye className="h-4 w-4" />
                                                         See Details
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="gap-2"
-                                                        onClick={() => { setEditingCategrory(category); setIsDialogOpen(true) }}
-                                                    >
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        className="gap-2 text-destructive"
-                                                        onClick={() => handleDelete(category.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                        Delete
-                                                    </DropdownMenuItem>
+                                                    {canEdit && (
+                                                        <DropdownMenuItem
+                                                            className="gap-2"
+                                                            onClick={() => { setEditingCategrory(category); setIsDialogOpen(true) }}
+                                                        >
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Edit
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {canDelete && <DropdownMenuSeparator />}
+                                                    {canDelete && (
+                                                        <DropdownMenuItem
+                                                            className="gap-2 text-destructive"
+                                                            onClick={() => handleDelete(category.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </TableCell>

@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Movement } from "@/types/type"
 import { ArrowUpDown, Eye, Filter, Loader2, MoreHorizontal, Plus, RotateCcw, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/use-user-role";
 
 export default function MovementsPage() {
     const [movements, setMovements] = useState<Movement[]>([])
@@ -23,6 +24,7 @@ export default function MovementsPage() {
     const [selectedPeriod, setSelectedPeriod] = useState("today")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingMovement, setEditingMovement] = useState<Movement | undefined>(undefined)
+    const { canCreate, canEdit, canDelete } = useUserRole();
 
     useEffect(() => {
         fetch("/api/movements")
@@ -152,10 +154,12 @@ export default function MovementsPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Movements Log</h1>
                         <p className="text-muted-foreground">Complete traceability of stock movements</p>
                     </div>
-                    <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        New Movement
-                    </Button>
+                    {canCreate && (
+                        <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            New Movement
+                        </Button>
+                    )}
                 </div>
                 {/* endHeader */}
 
@@ -362,19 +366,23 @@ export default function MovementsPage() {
                                                     </DropdownMenuItem>
                                                     {movement.status === "In Progress" && (
                                                         <>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                className="gap-2"
-                                                                onClick={() => {
-                                                                    setEditingMovement(movement);
-                                                                    setIsDialogOpen(true);
-                                                                }}
-                                                            >
-                                                                Edit
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="gap-2 text-destructive">
-                                                                Cancel
-                                                            </DropdownMenuItem>
+                                                            {canEdit && <DropdownMenuSeparator />}
+                                                            {canEdit && (
+                                                                <DropdownMenuItem
+                                                                    className="gap-2"
+                                                                    onClick={() => {
+                                                                        setEditingMovement(movement);
+                                                                        setIsDialogOpen(true);
+                                                                    }}
+                                                                >
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {canDelete && (
+                                                                <DropdownMenuItem className="gap-2 text-destructive">
+                                                                    Cancel
+                                                                </DropdownMenuItem>
+                                                            )}
                                                         </>
                                                     )}
                                                 </DropdownMenuContent>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canCreate, forbidden } from "@/lib/rbac";
 
 export async function GET() {
   const session = await auth();
@@ -22,6 +23,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canCreate(session)) return forbidden();
   try {
     const body = await req.json();
     const item = await prisma.supplier.create({

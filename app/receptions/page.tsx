@@ -13,6 +13,7 @@ import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye, PackageCheck, Clock, P
 import { ReceptionDialog } from "@/components/receptions/reception-dialog";
 import { Reception } from "@/types/type";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/use-user-role";
 
 export default function ReceptionsPage() {
   const [receptions, setReceptions] = useState<Reception[]>([]);
@@ -22,6 +23,7 @@ export default function ReceptionsPage() {
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingReception, setEditingReception] = useState<Reception | undefined>(undefined);
+  const { canCreate, canEdit, canDelete } = useUserRole();
 
   useEffect(() => {
     fetch("/api/receptions")
@@ -117,10 +119,12 @@ export default function ReceptionsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Receptions</h1>
             <p className="text-sm text-muted-foreground">Manage incoming goods and reception orders</p>
           </div>
-          <Button onClick={() => { setEditingReception(undefined); setIsDialogOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Reception
-          </Button>
+          {canCreate && (
+            <Button onClick={() => { setEditingReception(undefined); setIsDialogOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Reception
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -249,13 +253,17 @@ export default function ReceptionsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem className="gap-2"><Eye className="h-4 w-4" />View Details</DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => { setEditingReception(reception); setIsDialogOpen(true); }}>
-                            <Edit className="h-4 w-4" />Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(reception.id)}>
-                            <Trash2 className="h-4 w-4" />Delete
-                          </DropdownMenuItem>
+                          {canEdit && (
+                            <DropdownMenuItem className="gap-2" onClick={() => { setEditingReception(reception); setIsDialogOpen(true); }}>
+                              <Edit className="h-4 w-4" />Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && <DropdownMenuSeparator />}
+                          {canDelete && (
+                            <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(reception.id)}>
+                              <Trash2 className="h-4 w-4" />Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

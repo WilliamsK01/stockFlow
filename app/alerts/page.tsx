@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, Bell, CheckCircle, XCircle, Eye, Trash2, MoreHorizontal, Search, Loader2 } from "lucide-react";
 import { Alert } from "@/types/type";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/use-user-role";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -22,6 +23,7 @@ export default function AlertsPage() {
   const [selectedType, setSelectedType] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const { canEdit, canDelete } = useUserRole();
 
   useEffect(() => {
     fetch("/api/alerts")
@@ -142,9 +144,11 @@ export default function AlertsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Alerts Management</h1>
             <p className="text-sm text-muted-foreground">Monitor and manage system alerts</p>
           </div>
-          <Button variant="outline" onClick={handleClearResolved} className="gap-2">
-            <XCircle className="h-4 w-4" />Clear All Resolved
-          </Button>
+          {canDelete && (
+            <Button variant="outline" onClick={handleClearResolved} className="gap-2">
+              <XCircle className="h-4 w-4" />Clear All Resolved
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -269,16 +273,22 @@ export default function AlertsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem className="gap-2" onClick={() => handleAcknowledge(alert.id)}>
-                            <Eye className="h-4 w-4" />Acknowledge
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => handleResolve(alert.id)}>
-                            <CheckCircle className="h-4 w-4" />Resolve
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(alert.id)}>
-                            <Trash2 className="h-4 w-4" />Delete
-                          </DropdownMenuItem>
+                          {canEdit && (
+                            <DropdownMenuItem className="gap-2" onClick={() => handleAcknowledge(alert.id)}>
+                              <Eye className="h-4 w-4" />Acknowledge
+                            </DropdownMenuItem>
+                          )}
+                          {canEdit && (
+                            <DropdownMenuItem className="gap-2" onClick={() => handleResolve(alert.id)}>
+                              <CheckCircle className="h-4 w-4" />Resolve
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && <DropdownMenuSeparator />}
+                          {canDelete && (
+                            <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(alert.id)}>
+                              <Trash2 className="h-4 w-4" />Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

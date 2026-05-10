@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/main-layout";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +33,9 @@ import {
   AlertTriangle,
   ShoppingCart,
   Search,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ForecastItem {
   id: number;
@@ -48,7 +50,8 @@ interface ForecastItem {
   status: "Critical" | "Low" | "Normal" | "Overstocked";
 }
 
-const mockForecasts: ForecastItem[] = [
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _mockForecasts: ForecastItem[] = [
   {
     id: 1,
     reference: "REF-001",
@@ -161,11 +164,29 @@ const getDaysCell = (days: number) => (
 );
 
 export default function ForecastingPage() {
+  const [forecasts, setForecasts] = useState<ForecastItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const filteredForecasts = mockForecasts.filter((item) => {
+  useEffect(() => {
+    fetch("/api/forecasting")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d) => setForecasts(Array.isArray(d) ? d : []))
+      .catch(() => toast.error("Failed to load forecast data"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <MainLayout>
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </MainLayout>
+  );
+
+  const filteredForecasts = forecasts.filter((item) => {
     const matchesSearch =
       item.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.designation.toLowerCase().includes(searchTerm.toLowerCase());
@@ -176,21 +197,20 @@ export default function ForecastingPage() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const itemsToReplenish = mockForecasts.filter(
+  const itemsToReplenish = forecasts.filter(
     (i) => i.status === "Critical" || i.status === "Low",
   ).length;
-  const criticalCount = mockForecasts.filter(
+  const criticalCount = forecasts.filter(
     (i) => i.status === "Critical",
   ).length;
-  const overstockedCount = mockForecasts.filter(
+  const overstockedCount = forecasts.filter(
     (i) => i.status === "Overstocked",
   ).length;
-  const avgDailyConsumption = (
-    mockForecasts.reduce((sum, i) => sum + i.dailyConsumption, 0) /
-    mockForecasts.length
-  ).toFixed(1);
+  const avgDailyConsumption = forecasts.length > 0
+    ? (forecasts.reduce((sum, i) => sum + i.dailyConsumption, 0) / forecasts.length).toFixed(1)
+    : "0.0";
 
-  const replenishmentItems = mockForecasts.filter(
+  const replenishmentItems = forecasts.filter(
     (i) => i.status === "Critical" || i.status === "Low",
   );
 

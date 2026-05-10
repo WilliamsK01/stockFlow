@@ -4,32 +4,34 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { canManageUsers, forbidden } from "@/lib/rbac";
 
-export async function GET() {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canManageUsers(session)) return forbidden();
+  const { id } = await params;
   try {
-    const users = await prisma.user.findMany({
+    const { password, ...body } = await req.json();
+    const data: Record<string, unknown> = { ...body };
+    if (password) data.password = await bcrypt.hash(password, 10);
+    const user = await prisma.user.update({
+      where: { id },
+      data,
       select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
-      orderBy: { name: "asc" },
     });
-    return NextResponse.json(users);
+    return NextResponse.json(user);
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canManageUsers(session)) return forbidden();
+  const { id } = await params;
   try {
-    const { name, email, role, password } = await req.json();
-    const hashed = await bcrypt.hash(password || "ChangeMe@2025", 10);
-    const user = await prisma.user.create({
-      data: { name, email, role, password: hashed, active: true },
-      select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
-    });
-    return NextResponse.json(user, { status: 201 });
+    await prisma.user.delete({ where: { id } });
+    return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

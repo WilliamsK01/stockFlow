@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { canCreate, forbidden } from "@/lib/rbac";
+import { canManageResources, forbidden } from "@/lib/rbac";
 
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const receptions = await prisma.reception.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { supplier: true, warehouse: true, lines: { include: { article: true } } },
+    const employees = await prisma.employee.findMany({
+      orderBy: { lastName: "asc" },
+      include: { warehouse: { select: { name: true } } },
     });
-    return NextResponse.json(receptions);
+    return NextResponse.json(employees);
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -20,14 +20,11 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canCreate(session)) return forbidden();
+  if (!canManageResources(session)) return forbidden();
   try {
-    const { lines, ...rest } = await req.json();
-    const reception = await prisma.reception.create({
-      data: { ...rest, lines: { create: lines ?? [] } },
-      include: { supplier: true, warehouse: true, lines: { include: { article: true } } },
-    });
-    return NextResponse.json(reception, { status: 201 });
+    const body = await req.json();
+    const employee = await prisma.employee.create({ data: body });
+    return NextResponse.json(employee, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -21,6 +21,8 @@ import {
   ClipboardList,
   ChevronLeft,
   LogOut,
+  UserCog,
+  Contact,
 } from "lucide-react";
 
 const navigation = [
@@ -35,6 +37,8 @@ const navigation = [
   { name: "Forecasting", href: "/forecasting", icon: TrendingUp       },
   { name: "Reports",     href: "/reports",     icon: BarChart3        },
   { name: "Alerts",      href: "/alerts",      icon: AlertTriangle    },
+  { name: "Employees",   href: "/employees",   icon: Contact          },
+  { name: "Users",       href: "/users",       icon: UserCog          },
   { name: "Settings",    href: "/settings",    icon: Settings         },
 ];
 

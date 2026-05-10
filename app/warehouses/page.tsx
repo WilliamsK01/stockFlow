@@ -52,6 +52,7 @@ import {
 import { WarehouseDialog } from "@/components/warehouses/warehouse-dialog";
 import { Warehouse } from "@/types/type";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/use-user-role";
 
 const mockEmplacements = [
   {
@@ -98,6 +99,7 @@ export default function WarehousesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("warehouses");
+  const { canCreate, canEdit, canDelete, canManageResources } = useUserRole();
 
   useEffect(() => {
     fetch('/api/warehouses')
@@ -232,10 +234,12 @@ export default function WarehousesPage() {
               Manage your storage sites and locations
             </p>
           </div>
-          <Button onClick={handleAdd} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Warehouse
-          </Button>
+          {canManageResources && (
+            <Button onClick={handleAdd} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Warehouse
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -403,21 +407,25 @@ export default function WarehousesPage() {
                                 <Eye className="h-4 w-4" />
                                 See Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2"
-                                onClick={() => handleEdit(warehouse)}
-                              >
-                                <Edit className="h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => handleDelete(warehouse.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              {canManageResources && (
+                                <DropdownMenuItem
+                                  className="gap-2"
+                                  onClick={() => handleEdit(warehouse)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                              {canDelete && <DropdownMenuSeparator />}
+                              {canDelete && (
+                                <DropdownMenuItem
+                                  className="gap-2 text-destructive"
+                                  onClick={() => handleDelete(warehouse.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

@@ -13,6 +13,7 @@ import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye, ShoppingCart, Clock, F
 import { OrderDialog } from "@/components/orders/order-dialog";
 import { Order } from "@/types/type";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/use-user-role";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -22,6 +23,7 @@ export default function OrdersPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | undefined>(undefined);
+  const { canCreate, canEdit, canDelete } = useUserRole();
 
   useEffect(() => {
     fetch("/api/orders")
@@ -123,9 +125,11 @@ export default function OrdersPage() {
             <h1 className="text-3xl font-bold tracking-tight">Orders Management</h1>
             <p className="text-sm text-muted-foreground">Manage purchase and sale orders</p>
           </div>
-          <Button onClick={() => { setEditingOrder(undefined); setIsDialogOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" />New Order
-          </Button>
+          {canCreate && (
+            <Button onClick={() => { setEditingOrder(undefined); setIsDialogOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" />New Order
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -249,13 +253,17 @@ export default function OrdersPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem className="gap-2"><Eye className="h-4 w-4" />See Details</DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => { setEditingOrder(order); setIsDialogOpen(true); }}>
-                            <Edit className="h-4 w-4" />Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(order.id)}>
-                            <Trash2 className="h-4 w-4" />Delete
-                          </DropdownMenuItem>
+                          {canEdit && (
+                            <DropdownMenuItem className="gap-2" onClick={() => { setEditingOrder(order); setIsDialogOpen(true); }}>
+                              <Edit className="h-4 w-4" />Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && <DropdownMenuSeparator />}
+                          {canDelete && (
+                            <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(order.id)}>
+                              <Trash2 className="h-4 w-4" />Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

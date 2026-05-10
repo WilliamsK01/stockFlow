@@ -50,8 +50,10 @@ import {
 import { ArticleDialog } from "@/components/articles/article-dialog";
 import { Article } from "@/types/type";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/use-user-role";
 
 export default function ArticlesPage() {
+  const { canCreate, canEdit, canDelete } = useUserRole();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -204,10 +206,11 @@ export default function ArticlesPage() {
               Manage your catalog of items and their characteristics
             </p>
           </div>
-          <Button onClick={handleAdd} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Item
-          </Button>
+          {canCreate && (
+            <Button onClick={handleAdd} className="gap-2">
+              <Plus className="h-4 w-4" />New Item
+            </Button>
+          )}
         </div>
         {/* endHeader */}
 
@@ -395,21 +398,17 @@ export default function ArticlesPage() {
                             <Eye className="h-4 w-4" />
                             See Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="gap-2"
-                            onClick={() => handleEdit(article)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="gap-2 text-destructive"
-                            onClick={() => handleDelete(article.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canEdit && (
+                            <DropdownMenuItem className="gap-2" onClick={() => handleEdit(article)}>
+                              <Edit className="h-4 w-4" />Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && <DropdownMenuSeparator />}
+                          {canDelete && (
+                            <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDelete(article.id)}>
+                              <Trash2 className="h-4 w-4" />Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
