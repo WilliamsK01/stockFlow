@@ -1,6 +1,6 @@
-// components/layout/header.tsx
 "use client"
 import { Bell, Search, User, LogOut, Settings as Cog, AlertTriangle, CheckCircle, Package } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '../ui/dropdown-menu'
@@ -75,6 +75,11 @@ export default function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/profile">
+                <User className="mr-2 h-4 w-4" /> Mon profil
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>
               <Cog className="mr-2 h-4 w-4" /> Paramètres
             </DropdownMenuItem>

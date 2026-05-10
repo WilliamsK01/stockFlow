@@ -51,6 +51,7 @@ import { ArticleDialog } from "@/components/articles/article-dialog";
 import { Article } from "@/types/type";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/use-user-role";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 export default function ArticlesPage() {
   const { canCreate, canEdit, canDelete } = useUserRole();
@@ -61,6 +62,7 @@ export default function ArticlesPage() {
   const [selectedClassification, setSelectedClassification] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | undefined>(undefined);
+  const [detailArticle, setDetailArticle] = useState<Article | undefined>(undefined);
 
   useEffect(() => {
     fetch('/api/articles')
@@ -394,9 +396,8 @@ export default function ArticlesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem className="gap-2">
-                            <Eye className="h-4 w-4" />
-                            See Details
+                          <DropdownMenuItem className="gap-2" onClick={() => setDetailArticle(article)}>
+                            <Eye className="h-4 w-4" />See Details
                           </DropdownMenuItem>
                           {canEdit && (
                             <DropdownMenuItem className="gap-2" onClick={() => handleEdit(article)}>
@@ -429,6 +430,46 @@ export default function ArticlesPage() {
         </Card>
         {/* endArticles Table */}
       </div>
+
+      {/* Detail Sheet */}
+      <Sheet open={!!detailArticle} onOpenChange={(open) => { if (!open) setDetailArticle(undefined); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Article — {detailArticle?.reference}</SheetTitle>
+            <SheetDescription>{detailArticle?.designation}</SheetDescription>
+          </SheetHeader>
+          {detailArticle && (
+            <div className="px-6 space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["Reference", detailArticle.reference],
+                  ["Designation", detailArticle.designation],
+                  ["Category", detailArticle.category],
+                  ["Classification", detailArticle.classification],
+                  ["Unit", detailArticle.uniteMesure],
+                  ["Unit Price", `XOF ${detailArticle.unitPrice.toLocaleString()}`],
+                  ["Current Stock", String(detailArticle.stock ?? 0)],
+                  ["Min Threshold", String(detailArticle.seuilMin)],
+                  ["Max Threshold", String(detailArticle.seuilMax)],
+                  ["Supplier", detailArticle.supplier ?? "—"],
+                  ["Status", detailArticle.status],
+                ].map(([label, value]) => (
+                  <div key={label} className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                    <p className="font-medium">{value}</p>
+                  </div>
+                ))}
+              </div>
+              {detailArticle.description && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Description</p>
+                  <p className="text-muted-foreground">{detailArticle.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </MainLayout>
   );
 }

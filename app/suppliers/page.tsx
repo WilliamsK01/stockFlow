@@ -17,6 +17,7 @@ import { SupplierDialog } from "@/components/suppliers/supplier-dialog"
 import { FILTER_COUNTRIES } from "@/components/utils/countries"
 import { toast } from "sonner"
 import { useUserRole } from "@/hooks/use-user-role"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 
 
@@ -29,6 +30,7 @@ export default function SuppliersPage() {
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | undefined>(undefined);
     const [isCountryOpen, setIsCountryOpen] = useState<boolean>(false);
+    const [detailSupplier, setDetailSupplier] = useState<Supplier | undefined>(undefined);
     const { canCreate, canEdit, canDelete } = useUserRole();
 
     useEffect(() => {
@@ -326,9 +328,9 @@ export default function SuppliersPage() {
                                         <TableCell> {supplier.discount} % </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-1">
-                                                {getNoteStars(supplier.notes)}
+                                                {getNoteStars(supplier.rating ?? 0)}
                                                 <span className="text-sm ml-1">
-                                                    {supplier.notes}
+                                                    {supplier.rating ?? 0}
                                                 </span>
                                             </div>
                                         </TableCell>
@@ -344,9 +346,8 @@ export default function SuppliersPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem>
-                                                        <Eye className="h-4 w-4" />
-                                                        See Details
+                                                    <DropdownMenuItem className="gap-2" onClick={() => setDetailSupplier(supplier)}>
+                                                        <Eye className="h-4 w-4" />See Details
                                                     </DropdownMenuItem>
                                                     {canEdit && (
                                                         <DropdownMenuItem onClick={() => { setEditingSupplier(supplier); setIsDialogOpen(true); }}>
@@ -381,6 +382,39 @@ export default function SuppliersPage() {
                     onSave={handleSave}
                 />
             </div>
+
+            <Sheet open={!!detailSupplier} onOpenChange={(open) => { if (!open) setDetailSupplier(undefined); }}>
+                <SheetContent className="overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Supplier — {detailSupplier?.name}</SheetTitle>
+                        <SheetDescription>Full details of this supplier</SheetDescription>
+                    </SheetHeader>
+                    {detailSupplier && (
+                        <div className="px-6 space-y-4 text-sm">
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    ["Name", detailSupplier.name],
+                                    ["Contact", detailSupplier.contact],
+                                    ["Email", detailSupplier.email],
+                                    ["Phone", detailSupplier.phone],
+                                    ["Country", FILTER_COUNTRIES.find(c => c.value === detailSupplier.country)?.title ?? detailSupplier.country],
+                                    ["City", detailSupplier.city],
+                                    ["Delivery Time", `${detailSupplier.deliveryTime} days`],
+                                    ["Payment Terms", detailSupplier.paymentTerms],
+                                    ["Discount", `${detailSupplier.discount}%`],
+                                    ["Rating", `★ ${detailSupplier.rating}`],
+                                    ["Status", detailSupplier.status],
+                                ] as [string, unknown][]).map(([label, value]) => (
+                                    <div key={label} className="space-y-1">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                                        <p className="font-medium">{String(value ?? "—")}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
         </MainLayout>
     )
 }

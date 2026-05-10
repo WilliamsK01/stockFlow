@@ -53,6 +53,7 @@ import { WarehouseDialog } from "@/components/warehouses/warehouse-dialog";
 import { Warehouse } from "@/types/type";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/use-user-role";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 const mockEmplacements = [
   {
@@ -99,6 +100,7 @@ export default function WarehousesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("warehouses");
+  const [detailWarehouse, setDetailWarehouse] = useState<Warehouse | undefined>(undefined);
   const { canCreate, canEdit, canDelete, canManageResources } = useUserRole();
 
   useEffect(() => {
@@ -403,9 +405,8 @@ export default function WarehousesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem className="gap-2">
-                                <Eye className="h-4 w-4" />
-                                See Details
+                              <DropdownMenuItem className="gap-2" onClick={() => setDetailWarehouse(warehouse)}>
+                                <Eye className="h-4 w-4" />See Details
                               </DropdownMenuItem>
                               {canManageResources && (
                                 <DropdownMenuItem
@@ -535,6 +536,40 @@ export default function WarehousesPage() {
           onSave={handleSave}
         />
       </div>
+
+      <Sheet open={!!detailWarehouse} onOpenChange={(open) => { if (!open) setDetailWarehouse(undefined); }}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Warehouse — {detailWarehouse?.code}</SheetTitle>
+            <SheetDescription>Full details of this warehouse</SheetDescription>
+          </SheetHeader>
+          {detailWarehouse && (
+            <div className="px-6 space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  ["Name", detailWarehouse.name],
+                  ["Code", detailWarehouse.code],
+                  ["Type", detailWarehouse.type],
+                  ["Temperature", detailWarehouse.temperature],
+                  ["Manager", detailWarehouse.manager],
+                  ["Phone", detailWarehouse.phone],
+                  ["Email", detailWarehouse.email],
+                  ["City", detailWarehouse.city],
+                  ["Country", detailWarehouse.country],
+                  ["Area", `${detailWarehouse.area} m²`],
+                  ["Max Capacity", detailWarehouse.maxCapacity],
+                  ["Status", detailWarehouse.status],
+                ] as [string, unknown][]).map(([label, value]) => (
+                  <div key={label} className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                    <p className="font-medium">{String(value ?? "—")}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </MainLayout>
   );
 }

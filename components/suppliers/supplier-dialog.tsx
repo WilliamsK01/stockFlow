@@ -93,7 +93,8 @@ export function SupplierDialog({ open, onOpenChange, supplier, onSave }: Supplie
         const supplierData: Supplier = {
             id: supplier?.id ?? Date.now(),
             ...formData,
-            notes: Number.parseInt(formData.notes, 10) || 0,
+            notes: formData.notes,
+            rating: 0,
             deliveryTime: Number.parseInt(formData.deliveryTime, 10) || 7,
             discount: Number.parseInt(formData.discount, 10) || 0,
             nbOrder: Number.parseInt(formData.nbOrder, 10) || 0,

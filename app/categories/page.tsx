@@ -13,6 +13,7 @@ import { Category } from "@/types/type"
 import { Edit, Eye, Loader2, MoreHorizontal, Package, Search, Tags, Trash2, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useUserRole } from "@/hooks/use-user-role"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([])
@@ -20,6 +21,7 @@ export default function CategoriesPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingCategory, setEditingCategrory] = useState<Category | undefined>(undefined)
+    const [detailCategory, setDetailCategory] = useState<Category | undefined>(undefined)
     const { canCreate, canEdit, canDelete } = useUserRole()
 
     useEffect(() => {
@@ -261,9 +263,8 @@ export default function CategoriesPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem className="gap-2">
-                                                        <Eye className="h-4 w-4" />
-                                                        See Details
+                                                    <DropdownMenuItem className="gap-2" onClick={() => setDetailCategory(category)}>
+                                                        <Eye className="h-4 w-4" />See Details
                                                     </DropdownMenuItem>
                                                     {canEdit && (
                                                         <DropdownMenuItem
@@ -302,6 +303,40 @@ export default function CategoriesPage() {
                     onSave={handleSave}
                 />
             </div>
+
+            <Sheet open={!!detailCategory} onOpenChange={(open) => { if (!open) setDetailCategory(undefined); }}>
+                <SheetContent className="overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Category — {detailCategory?.name}</SheetTitle>
+                        <SheetDescription>Full details of this category</SheetDescription>
+                    </SheetHeader>
+                    {detailCategory && (
+                        <div className="px-6 space-y-4 text-sm">
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    ["Name", detailCategory.name],
+                                    ["Parent Category", detailCategory.parent || "—"],
+                                    ["Articles Count", detailCategory.nbArticles],
+                                    ["Rotation Threshold", `${detailCategory.seuilRotation}x`],
+                                    ["Auto Classification", detailCategory.autoClassification ? "Enabled" : "Disabled"],
+                                    ["Status", detailCategory.active ? "Active" : "Inactive"],
+                                ] as [string, unknown][]).map(([label, value]) => (
+                                    <div key={label} className="space-y-1">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                                        <p className="font-medium">{String(value ?? "—")}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            {detailCategory.description && (
+                                <div className="space-y-1">
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Description</p>
+                                    <p className="font-medium">{detailCategory.description}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
         </MainLayout>
     )
 }

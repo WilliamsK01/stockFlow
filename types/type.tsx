@@ -47,9 +47,10 @@ export interface Supplier {
   deliveryTime: number,
   paymentTerms: string,
   discount: number,
-  notes: number,
+  notes: string,
   nbOrder: number,
   totalAmount: number,
+  rating: number,
   status: string,
   certifications: string[],
 }

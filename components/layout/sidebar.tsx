@@ -167,12 +167,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {collapsed ? (
             <>
               {/* Avatar only */}
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-xs font-bold shadow-sm cursor-default select-none"
-                title="Williams KOFFI — Administrator"
-              >
-                WK
-              </div>
+              <Link href="/profile" title="Williams KOFFI — My Profile">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-xs font-bold shadow-sm cursor-pointer select-none hover:ring-2 hover:ring-primary/40 transition-all">
+                  WK
+                </div>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"
@@ -185,17 +184,19 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             /* Expanded user row */
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/60 transition-colors group">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-sm font-bold shadow-sm select-none">
-                WK
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold leading-tight truncate">
-                  Williams KOFFI
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Administrator
-                </p>
-              </div>
+              <Link href="/profile" className="flex items-center gap-2.5 flex-1 min-w-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-sm font-bold shadow-sm select-none">
+                  WK
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold leading-tight truncate">
+                    Williams KOFFI
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Administrator
+                  </p>
+                </div>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"

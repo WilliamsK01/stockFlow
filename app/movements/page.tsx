@@ -14,6 +14,7 @@ import { Movement } from "@/types/type"
 import { ArrowUpDown, Eye, Filter, Loader2, MoreHorizontal, Plus, RotateCcw, Search, TrendingDown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/use-user-role";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 export default function MovementsPage() {
     const [movements, setMovements] = useState<Movement[]>([])
@@ -24,6 +25,7 @@ export default function MovementsPage() {
     const [selectedPeriod, setSelectedPeriod] = useState("today")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingMovement, setEditingMovement] = useState<Movement | undefined>(undefined)
+    const [detailMovement, setDetailMovement] = useState<Movement | undefined>(undefined)
     const { canCreate, canEdit, canDelete } = useUserRole();
 
     useEffect(() => {
@@ -360,9 +362,8 @@ export default function MovementsPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem className="gap-2">
-                                                        <Eye className="h-4 w-4" />
-                                                        See Details
+                                                    <DropdownMenuItem className="gap-2" onClick={() => setDetailMovement(movement)}>
+                                                        <Eye className="h-4 w-4" />See Details
                                                     </DropdownMenuItem>
                                                     {movement.status === "In Progress" && (
                                                         <>
@@ -403,6 +404,43 @@ export default function MovementsPage() {
                 />
 
             </div>
+
+            <Sheet open={!!detailMovement} onOpenChange={(open) => { if (!open) setDetailMovement(undefined); }}>
+                <SheetContent className="overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Movement — {detailMovement?.reference}</SheetTitle>
+                        <SheetDescription>Full details of this movement</SheetDescription>
+                    </SheetHeader>
+                    {detailMovement && (
+                        <div className="px-6 space-y-4 text-sm">
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    ["Reference", detailMovement.reference],
+                                    ["Type", detailMovement.type],
+                                    ["Status", detailMovement.status],
+                                    ["Article", detailMovement.article],
+                                    ["Designation", detailMovement.designation],
+                                    ["Quantity", detailMovement.quantity],
+                                    ["Source Warehouse", detailMovement.sourceWarehouse],
+                                    ["Dest Warehouse", detailMovement.destinationWarehouse],
+                                    ["User", detailMovement.user],
+                                    ["Lot Number", detailMovement.lotNumber || "—"],
+                                    ["Unit Cost", `XOF ${detailMovement.unitCost?.toLocaleString()}`],
+                                ] as [string, unknown][]).map(([label, value]) => (
+                                    <div key={label} className="space-y-1">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                                        <p className="font-medium">{String(value ?? "—")}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Created</p>
+                                <p className="font-medium">{new Date(detailMovement.creationDate).toLocaleDateString("fr-FR")}</p>
+                            </div>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
         </MainLayout>
     )
 }
