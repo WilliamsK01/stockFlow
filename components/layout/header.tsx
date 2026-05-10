@@ -81,7 +81,9 @@ export default function Header() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <Cog className="mr-2 h-4 w-4" /> Paramètres
+              <Link href="/settings">
+                <Cog className="mr-2 h-4 w-4" /> Paramètres
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <LogOut className="mr-2 h-4 w-4" /> Déconnexion
