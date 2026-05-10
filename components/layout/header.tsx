@@ -80,13 +80,13 @@ export default function Header() {
                 <User className="mr-2 h-4 w-4" /> Profile
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/settings">
-                <Cog className="mr-2 h-4 w-4" /> Settings
+              <Cog className="mr-2 h-4 w-4" /> Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
+              <LogOut className="mr-2 h-4 w-4" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
